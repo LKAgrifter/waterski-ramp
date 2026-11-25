@@ -107,7 +107,10 @@ height it just left drives back to it.
 
 **Testing bypass:** `ALLOW_HEIGHT_SAFETY_BYPASS` (master switch, false for real use) lets you hold UP + DOWN together 2 s on the
 MANUAL page to ignore the height sensors for manual-only testing. Automatic moves are disabled while it's on; the
-motor timeout still applies.
+motor timeout still applies. It is off after every reboot. **Ramp only:** the remotes have no bypass control
+(remote `ALLOW_HEIGHT_SAFETY_BYPASS = false`) and the ramp ignores bypass requests over the radio
+(`ALLOW_BYPASS_FROM_REMOTE = false`), so a remote with other firmware can't switch it either. Remotes still show
+when it is on.
 
 **Ladder calibration mode:** `LADDER_CALIBRATION_MODE = true` shows the raw reading on HOME (and Serial at 115200)
 and disables height selection. Set back to false afterwards.

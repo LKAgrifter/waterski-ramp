@@ -103,12 +103,15 @@ int main(){
   run(3000); for(int i=0;i<1500;i++){ if(i%150==0) sendCmd(1); run(1);} 
   CHECK(!state.Motor_Running,"remote manual blocked by cal/sensor fault when bypass OFF");
   sendCmd(0,-1,-1,1,5); run(10);
-  CHECK(heightSafetyBypassActive(),"remote can enable bypass");
+  CHECK(!heightSafetyBypassActive(),"a remote can NOT enable the bypass (ramp only)");
+  setHeightSafetyBypass(true); run(10);   // as if switched on at the ramp's own Manual page
+  CHECK(heightSafetyBypassActive(),"bypass on at the ramp");
   for(int i=0;i<1500;i++){ if(i%150==0) sendCmd(1); run(1);} 
   CHECK(state.Motor_Running,"manual runs with bypass ON despite cal + sensor fault");
   run(1100); CHECK(!state.Motor_Running,"dead-man still works in bypass");
   uint8_t before=pendingAckResult; sendCmd(0,2,-1,-1,9); CHECK(pendingAckResult==ACK_LOCKED,"remote height cmd refused during bypass");
-  sendCmd(0,-1,-1,0,10); CHECK(!heightSafetyBypassActive(),"remote can disable bypass");
+  sendCmd(0,-1,-1,0,10); CHECK(heightSafetyBypassActive(),"a remote can NOT switch it off either (ramp only)");
+  setHeightSafetyBypass(false); CHECK(!heightSafetyBypassActive(),"switched off at the ramp");
 
   // 9. 30 s timeout still applies in bypass
   setHeightSafetyBypass(true);

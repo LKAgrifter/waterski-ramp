@@ -5,7 +5,7 @@
 //  HOME page      : status only, nothing does anything
 //  SET HEIGHT     : the ladder buttons request 4 / 4.5 / 5 / 5.5 ft (the ONLY page where they work)
 //  MANUAL page    : UP / DOWN = hold-to-run motor on the RAMP (streamed over LoRa, 1 s dead-man on the ramp).
-//                   Hold UP + DOWN together 2 s = toggle the ramp's sensor bypass (testing)
+//                   Hold UP + DOWN together 2 s = toggle the ramp's sensor bypass (testing; off unless ALLOW_HEIGHT_SAFETY_BYPASS)
 //  WATER page     : BOAT mode: BACK tap = toggle the ramp's water on / off
 //                   TIMER mode: BACK tap = +1 h on the ramp's timer (1..12 h, then off), hold BACK 1 s = off
 //                   Hold UP + DOWN together 2 s = switch this remote between BOAT and TIMER mode (saved)

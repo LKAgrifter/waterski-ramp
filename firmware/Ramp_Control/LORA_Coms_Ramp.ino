@@ -339,7 +339,9 @@ void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr)
           waterTimerTap(cmd.remoteId);   // One-shot: a retry of the same seq is re-ACKed above, never applied twice
         }
 
-        if (cmd.bypassCommand == 0 || cmd.bypassCommand == 1)   // TESTING ONLY. Ignored if ALLOW_HEIGHT_SAFETY_BYPASS is false.
+        // TESTING ONLY. Ignored unless ALLOW_BYPASS_FROM_REMOTE (and ALLOW_HEIGHT_SAFETY_BYPASS) are true:
+        // normally the bypass can only be switched at the ramp itself.
+        if (ALLOW_BYPASS_FROM_REMOTE && (cmd.bypassCommand == 0 || cmd.bypassCommand == 1))
         {
           setHeightSafetyBypass(cmd.bypassCommand == 1);
         }

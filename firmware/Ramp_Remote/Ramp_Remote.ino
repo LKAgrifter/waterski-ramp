@@ -37,7 +37,7 @@ static RadioEvents_t RadioEvents;
 //   EnterButton (AUX3) : MENU button. HOLD to go to the next page.
 //   BackButton  (AUX4) : Water page  = WATER button. BOAT mode: tap = toggle on/off.
 //                                      TIMER mode: tap = +1 h (like the ramp), hold 1 s = off
-//   UP + DOWN together : Manual page = HOLD 2 s to toggle the height-sensor bypass on the RAMP
+//   UP + DOWN together : Manual page = HOLD 2 s to toggle the height-sensor bypass on the RAMP (only if ALLOW_HEIGHT_SAFETY_BYPASS)
 //                        Water page  = HOLD 2 s to switch this remote's water mode (BOAT / TIMER)
 //                        Network page = HOLD 2 s to change this remote's ID (1 -> 2 -> 3 -> 4 -> 1)
 //   Ladder buttons     : height select. ONLY works on the SET HEIGHT page (so a bumped button can't move the ramp).
@@ -79,9 +79,10 @@ constexpr unsigned long WATER_OFF_HOLD_MS  = 1000;  // TIMER mode: hold BACK thi
 constexpr uint8_t       WATER_TAP_QUEUE_MAX = 12;   // TIMER mode: taps waiting to be sent (12 taps = the whole 1..12 h range)
 constexpr unsigned long SCREEN_REFRESH_MS = 80;     // Max OLED redraw rate (~12 Hz)
 
-// TESTING ONLY. Set false to make this remote unable to ask the ramp for the height-sensor bypass.
-// (The ramp has its own ALLOW_HEIGHT_SAFETY_BYPASS master switch as well.)
-constexpr bool ALLOW_HEIGHT_SAFETY_BYPASS = true;
+// TESTING ONLY. false (normal): the sensor bypass is only available on the ramp itself, so this remote has no bypass
+// control (it still SHOWS when the ramp's bypass is on). true = Manual page, hold UP + DOWN 2 s asks the ramp to
+// toggle it - which the ramp only obeys if its own ALLOW_BYPASS_FROM_REMOTE is true too.
+constexpr bool ALLOW_HEIGHT_SAFETY_BYPASS = false;
 
 //Buttons
 constexpr uint8_t Ladder_pin    = 5; // Resistor Ladder Buttons (For Heigth Selection)
