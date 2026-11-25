@@ -47,7 +47,7 @@ Read this before changing behaviour. Settings are named constants near the top o
 | Height sensors (ramp) | Magnetic, **normally closed**, wired pin-to-GND with INPUT_PULLUP: HIGH = at that height. GPIO 34 (4 ft), 33 (4.5), 47 (5), 48 (5.5). Setting: `LIMIT_ACTIVE_LEVEL`. A broken wire reads as "triggered" (caught as a sensor fault when two read on). |
 | Buttons (both units) | UP GPIO 7, DOWN GPIO 6, MENU/ENTER GPIO 38, BACK/WATER GPIO 39 (INPUT_PULLUP). |
 | Height buttons | Resistor ladder (10 k) on GPIO 5. Measured ADC: none ~3200, 4.0 ft ~2980, 4.5 ~2610, 5.0 ~1960, 5.5 ~0. Thresholds halfway between, 4-sample average. |
-| Ramp LEDs | GPIO 40 (4 ft), 19 (4.5), 20 (5), 26 (5.5). |
+| Ramp LEDs | GPIO 40 = 4 ft (blue), 19 = 4.5 ft (green), 20 = 5 ft (yellow), 26 = 5.5 ft (red). |
 | Current sense | GPIO 4 (AC current sensor), ramp only. |
 | Motor | ~135 rpm x 1 mm/rev = ~2.25 mm/s. A 0.5 ft step (152 mm) is ~68 s if jack travel equals height change. 4 -> 5.5 ft is ~3.4 min. |
 
