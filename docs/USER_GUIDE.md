@@ -34,7 +34,7 @@ Hold **MENU for half a second** to move to the next page. A quick tap does nothi
 
 After NETWORK it goes back to HOME.
 
-- **Screen sleep:** the screen turns off after 1 minute without a button press and returns to HOME. The first press only wakes it; it never does anything else.
+- **Screen sleep:** the screen turns off after 1 minute without a button press and returns to HOME. It stays on while the ramp is moving, so you can watch a move finish. The first press only wakes it; it never does anything else.
 - **HOME does nothing on purpose.** Press a height button there and the bottom line says "Set height: page 3"; press BACK and it says "Water: page 2".
 - **UP + DOWN held together for 2 seconds** is the special-function hold. What it does depends on the page: open the games (HOME), switch the remote's water mode (remote WATER page), change the remote's ID (remote NETWORK page) and turn on the testing bypass (ramp MANUAL page only). Pressing two buttons for 2 seconds can't happen by accident.
 

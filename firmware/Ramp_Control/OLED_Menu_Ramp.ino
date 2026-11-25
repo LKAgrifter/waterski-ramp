@@ -14,9 +14,13 @@ void handleOLEDTimeout()
   // off the Manual page) in the middle of a long drive.
   bool motorButtonHeld = UpButton.state || DownButton.state;
 
-  if (anyPressed || motorButtonHeld)
+  // While the ramp is moving the screen stays on (and the timeout starts counting again when it stops), so you
+  // can watch a move finish. It doesn't wake a screen that is already asleep.
+  bool rampMoving = state.Motor_Running;
+
+  if (anyPressed || motorButtonHeld || rampMoving)
   {
-    // Any button activity resets the inactivity timer
+    // Any button activity (or the ramp moving) resets the inactivity timer
     state.lastActivityTime = millis();
   }
 
