@@ -43,7 +43,7 @@ static RadioEvents_t RadioEvents;
 // Hidden GAMES page: hold UP + DOWN together 2 s on HOME (hold MENU in the games to go back to HOME).
 // HOME only shows status. Pressing a height button anywhere but SET HEIGHT just shows a reminder on HOME.
 // If the OLED times out the menu returns to HOME.
-constexpr unsigned long MENU_HOLD_MS      = 1000;   // Hold MENU this long to change page
+constexpr unsigned long MENU_HOLD_MS      = 500;    // Hold MENU this long to change page
 constexpr unsigned long GAMES_HOLD_MS     = 2000;   // Hold UP + DOWN this long (HOME) to open the games
 constexpr unsigned long HEIGHT_HINT_MS    = 2500;   // How long HOME shows "use SET HEIGHT page" after a stray height press
 unsigned long heightHintUntil = 0;

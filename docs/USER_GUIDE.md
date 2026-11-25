@@ -13,7 +13,7 @@ Both units use the same board, the same buttons and the same menu pages, so if y
 
 | Control | What it does |
 | --- | --- |
-| MENU button | Hold 1 s to go to the next page |
+| MENU button | Hold 0.5 s to go to the next page |
 | BACK / WATER button | Water on/off (WATER page) and a few setup holds |
 | UP and DOWN buttons | Drive the ramp by hand (MANUAL page); scroll lists; held together for 2 s they open special functions |
 | Height buttons (4.0 / 4.5 / 5.0 / 5.5) | Pick a height (SET HEIGHT page only) |
@@ -23,7 +23,7 @@ The motor is slow on purpose: one 0.5 ft step takes about 70 seconds, and 4.0 to
 
 ## Using the menus
 
-Hold **MENU for 1 second** to move to the next page. A quick tap does nothing, so a bumped button can't change pages. The page number shows top right (for example 2/6).
+Hold **MENU for half a second** to move to the next page. A quick tap does nothing, so a bumped button can't change pages. The page number shows top right (for example 2/6).
 
 1. HOME: status only
 2. WATER: water on/off
@@ -170,7 +170,7 @@ Both units have a hidden Water Ski Arcade with five games. The games never touch
 
 - **Open:** on HOME (page 1 only), hold **UP + DOWN together for 2 seconds**.
 - **Pick a game:** UP / DOWN, then tap MENU to play. Tap BACK to return to the game list.
-- **Leave:** hold MENU for 1 second. You go back to HOME.
+- **Leave:** hold MENU for half a second. You go back to HOME.
 
 ![The games list](images/user-guide/ramp-games.png)
 
@@ -186,7 +186,7 @@ Best scores reset when the unit is switched off.
 
 ## Quick reference
 
-Hold MENU 1 s on any page to go to the next one.
+Hold MENU 0.5 s on any page to go to the next one.
 
 | Page | Ramp controller | Remote |
 | --- | --- | --- |

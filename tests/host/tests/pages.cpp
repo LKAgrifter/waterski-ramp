@@ -49,7 +49,7 @@ int main(){
   for(int i=0;i<7 && currentScreen!=SCREEN_HOME;i++) holdMenu();
   pinv[7]=0; pinv[6]=0; run(1500); pinv[7]=1; pinv[6]=1; run(100); CHECK(currentScreen==SCREEN_HOME,"UP + DOWN for 1.5 s does not open games");
   pinv[7]=0; run(300); pinv[7]=1; pinv[6]=0; run(2500); pinv[6]=1; run(100); CHECK(currentScreen==SCREEN_HOME,"UP then DOWN one after the other (not together) does not open games");
-  pinv[38]=0; run(800); pinv[38]=1; run(60); CHECK(currentScreen==SCREEN_HOME,"MENU held 0.8 s does not change page (the hold is 1 s)");
+  pinv[38]=0; run(300); pinv[38]=1; run(60); CHECK(currentScreen==SCREEN_HOME,"MENU held 0.3 s does not change page (the hold is 0.5 s)");
   holdMenu(); CHECK(currentScreen==SCREEN_WATER,"on WATER");
   comboGames(); CHECK(currentScreen!=SCREEN_GAME,"UP + DOWN on another page does NOT open games");
   for(int i=0;i<7 && currentScreen!=SCREEN_HOME;i++) holdMenu();
