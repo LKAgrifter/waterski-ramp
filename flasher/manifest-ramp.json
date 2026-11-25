@@ -1,0 +1,16 @@
+{
+  "name": "Waterski ramp controller",
+  "version": "dev",
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32-S3",
+      "parts": [
+        { "path": "firmware/ramp/bootloader.bin", "offset": 0 },
+        { "path": "firmware/ramp/partitions.bin", "offset": 32768 },
+        { "path": "firmware/ramp/boot_app0.bin", "offset": 57344 },
+        { "path": "firmware/ramp/firmware.bin", "offset": 65536 }
+      ]
+    }
+  ]
+}

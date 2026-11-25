@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ramp Firmware Flasher</title>
+  <meta name="description" content="Install the waterski ramp controller or remote firmware from your browser - no Arduino IDE needed.">
+  <!-- ESP Web Tools (https://esphome.github.io/esp-web-tools/) - pinned version -->
+  <script type="module" src="https://unpkg.com/esp-web-tools@10.1.0/dist/web/install-button.js?module"></script>
+  <style>
+    :root {
+      --bg: #f6f7f9; --card: #ffffff; --text: #1b1f24; --muted: #5b6470; --line: #dde1e6;
+      --accent: #0b6bcb; --accent-text: #ffffff; --warn-bg: #fff6e0; --warn-line: #e8c56a;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #121417; --card: #1b1e23; --text: #e8eaed; --muted: #a2a9b3; --line: #2c3138;
+        --accent: #4c9ee8; --accent-text: #0b1118; --warn-bg: #2b2414; --warn-line: #7a6326;
+      }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text);
+           font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+    h1 { font-size: 1.7rem; margin: 0 0 4px; }
+    .sub { color: var(--muted); margin: 0 0 28px; }
+    .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+    .card h2 { font-size: 1.15rem; margin: 0 0 6px; }
+    .card p { margin: 0 0 16px; color: var(--muted); }
+    esp-web-install-button button[slot="activate"] {
+      background: var(--accent); color: var(--accent-text); border: 0; border-radius: 8px;
+      padding: 10px 18px; font: inherit; font-weight: 600; cursor: pointer; }
+    esp-web-install-button:not(:defined) span { display: none; }   /* fallback messages only once the tool has loaded */
+    .warn { background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 10px; padding: 14px 16px; margin: 24px 0; }
+    ol { padding-left: 1.3em; } li { margin: 6px 0; }
+    code { background: var(--line); padding: 1px 5px; border-radius: 4px; font-size: .92em; }
+    .version { color: var(--muted); font-size: .9rem; margin-top: 28px; }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Ramp firmware flasher</h1>
+  <p class="sub">Install the ramp controller or remote firmware straight from this page. No Arduino IDE, drivers or downloads.</p>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Remote</h2>
+      <p>For a handheld remote. One file works for every remote: set each remote's ID on the remote afterwards.</p>
+      <esp-web-install-button manifest="manifest-remote.json">
+        <button slot="activate">Install remote firmware</button>
+        <span slot="unsupported">Use Chrome or Edge on a computer to flash.</span>
+        <span slot="not-allowed">This page must be opened over https.</span>
+      </esp-web-install-button>
+    </div>
+    <div class="card">
+      <h2>Ramp controller</h2>
+      <p>For the board in the ramp. Disconnect motor and pump power before flashing.</p>
+      <esp-web-install-button manifest="manifest-ramp.json">
+        <button slot="activate">Install ramp firmware</button>
+        <span slot="unsupported">Use Chrome or Edge on a computer to flash.</span>
+        <span slot="not-allowed">This page must be opened over https.</span>
+      </esp-web-install-button>
+    </div>
+  </div>
+
+  <div class="warn">
+    <strong>Keep settings?</strong> The installer may offer to <em>erase the device</em>. Leave that <strong>unticked</strong>
+    when updating a board: erasing wipes saved settings (a remote's ID, the ramp's last height). Tick it only for a
+    brand-new board or if a board misbehaves.
+  </div>
+
+  <h2>Steps</h2>
+  <ol>
+    <li>Plug the Heltec board into this computer with a USB-C <em>data</em> cable.</li>
+    <li>Click the install button for the board you're flashing, pick the board's port, and confirm.</li>
+    <li>Wait for it to finish (about a minute), then unplug it.</li>
+    <li><strong>New remote:</strong> on the remote, hold MENU to reach the NETWORK page, then hold BACK for 2 seconds
+      to change its ID. Each remote talking to the same ramp needs a different ID (1&ndash;4).</li>
+    <li>Flash the ramp and all remotes from the <strong>same version</strong>; they share a radio message format.</li>
+  </ol>
+
+  <h2>If it doesn't connect</h2>
+  <ul>
+    <li>Try another cable (many USB-C cables are charge-only) or another USB port.</li>
+    <li>Hold the board's <code>PRG</code> button while plugging it in, then try again.</li>
+    <li>Close the Arduino IDE or anything else that might have the port open.</li>
+  </ul>
+
+  <p class="version">Firmware version: <span id="ver">loading&hellip;</span> &middot;
+    Changing the code? See the <a href="REPO_URL">firmware repository</a> and its Arduino IDE guide.</p>
+</main>
+<script>
+  // version.json is written by the GitHub build next to this page
+  fetch('version.json').then(r => r.ok ? r.json() : null).then(v => {
+    document.getElementById('ver').textContent = v ? (v.version + ' (' + v.date + ')') : 'unknown';
+  }).catch(() => { document.getElementById('ver').textContent = 'unknown'; });
+</script>
+</body>
+</html>

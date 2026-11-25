@@ -1,0 +1,20 @@
+# Host test build output
+tests/host/build/
+
+# Arduino / PlatformIO / editor clutter
+build/
+.pio/
+*.bin
+*.elf
+*.hex
+*.map
+.vscode/ipch/
+.DS_Store
+Thumbs.db
+__pycache__/
+
+# Hardware tool backups (KiCad etc.)
+*-backups/
+*.bak
+*.kicad_prl
+fp-info-cache

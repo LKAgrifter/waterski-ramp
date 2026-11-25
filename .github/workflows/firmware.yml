@@ -1,0 +1,112 @@
+# Builds the ramp and remote firmware with the real ESP32 toolchain, runs the PC simulation tests first,
+# and publishes the browser flasher (flasher/) with the fresh binaries to GitHub Pages.
+#
+# One-time setup on GitHub: Settings > Pages > "Build and deployment" > Source: GitHub Actions.
+# Pin the versions below to the ones that work in your Arduino IDE (Boards Manager / Library Manager).
+# Left empty, the latest versions are installed - fine to start with, but pin them once confirmed.
+
+name: Firmware
+
+on:
+  push:
+    branches: [main]
+    paths: ['firmware/**', 'flasher/**', 'tests/**', '.github/workflows/firmware.yml']
+  release:
+    types: [published]
+  workflow_dispatch:
+
+env:
+  HELTEC_BOARD_URL: https://resource.heltec.cn/download/package_heltec_esp32_index.json
+  CORE: Heltec-esp32:esp32
+  CORE_VERSION: ''            # e.g. 3.0.2   (Tools > Board > Boards Manager > Heltec ESP32)
+  LIBRARY: Heltec ESP32 Dev-Boards
+  LIBRARY_VERSION: ''         # e.g. 2.1.6   (Tools > Manage Libraries)
+  FQBN: Heltec-esp32:esp32:heltec_wifi_lora_32_V3
+
+permissions:
+  contents: write   # attach binaries to releases
+  pages: write
+  id-token: write
+
+concurrency:
+  group: firmware-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  host-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PC simulation tests
+        run: python3 tests/host/run_tests.py
+
+  build:
+    needs: host-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # for git describe
+
+      - uses: arduino/setup-arduino-cli@v2
+
+      - name: Install Heltec board package and library
+        run: |
+          arduino-cli config init --overwrite
+          arduino-cli config add board_manager.additional_urls "$HELTEC_BOARD_URL"
+          arduino-cli core update-index
+          arduino-cli core install "${CORE}${CORE_VERSION:+@$CORE_VERSION}"
+          arduino-cli lib install "${LIBRARY}${LIBRARY_VERSION:+@$LIBRARY_VERSION}"
+          arduino-cli core list
+          arduino-cli lib list
+
+      - name: Compile
+        run: |
+          for s in Ramp_Control Ramp_Remote; do
+            arduino-cli compile --fqbn "$FQBN" --warnings default --output-dir "out/$s" "firmware/$s"
+          done
+          ls -l out/*
+
+      - name: Assemble flasher site
+        run: |
+          set -e
+          VERSION="$(git describe --tags --always --dirty)"
+          DATE="$(date -u +%Y-%m-%d)"
+          BOOT_APP0="$(find ~/.arduino15/packages -name boot_app0.bin | head -n 1)"
+          test -n "$BOOT_APP0" || { echo "boot_app0.bin not found in the board package"; exit 1; }
+          mkdir -p site
+          cp flasher/* site/
+          for pair in ramp:Ramp_Control remote:Ramp_Remote; do
+            u="${pair%%:*}"; s="${pair##*:}"
+            d="site/firmware/$u"; mkdir -p "$d"
+            cp "out/$s/$s.ino.bin"            "$d/firmware.bin"
+            cp "out/$s/$s.ino.bootloader.bin" "$d/bootloader.bin"
+            cp "out/$s/$s.ino.partitions.bin" "$d/partitions.bin"
+            cp "$BOOT_APP0"                   "$d/boot_app0.bin"
+            sed -i "s/\"version\": \"dev\"/\"version\": \"$VERSION\"/" "site/manifest-$u.json"
+          done
+          sed -i "s|REPO_URL|${{ github.server_url }}/${{ github.repository }}|" site/index.html
+          printf '{"version":"%s","date":"%s"}\n' "$VERSION" "$DATE" > site/version.json
+          (cd site/firmware && zip -r "../../firmware-$VERSION.zip" .)
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Attach binaries to the release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" "firmware-${VERSION}.zip" --clobber
+
+  deploy:
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
