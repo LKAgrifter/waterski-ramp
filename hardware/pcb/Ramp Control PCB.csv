@@ -1,0 +1,9 @@
+"Id";"Designator";"Footprint";"Quantity";"Designation";"Supplier and ref";
+1;"10k_1, 10k_2, 10k_3, 10k_4, 10k_5";"R_0805_2012Metric_Pad1.20x1.40mm_HandSolder";5;"10k";;;
+2;"BTN_1, BTN_2, BTN_3, BTN_4, H_4, H_4.5, H_5, H_5.5";"TerminalBlock_Phoenix_MKDS-1,5-2-5.08_1x02_P5.08mm_Horizontal";8;"SW_Push";;;
+3;"CUR/AUX1";"TerminalBlock_Phoenix_MKDS-1,5-3-5.08_1x03_P5.08mm_Horizontal";1;"ACS781xLRTR-050B";;;
+4;"D1, D2, D3, D4";"LED_0805_2012Metric_Pad1.15x1.40mm_HandSolder";4;"LED";;;
+5;"DIR_RLY1, PUMP_RLY1, PWR_RLY1";"TerminalBlock_Phoenix_MKDS-1,5-3-5.08_1x03_P5.08mm_Horizontal";3;"~";;;
+6;"J2, J3";"PinSocket_1x18_P2.54mm_Vertical";2;"~";;;
+7;"LMT_4, LMT_4.5, LMT_5, LMT_5.5";"TerminalBlock_Phoenix_MKDS-1,5-2-5.08_1x02_P5.08mm_Horizontal";4;"SW_Push_SPDT";;;
+8;"R280_1, R280_2, R280_3, R280_4";"R_0805_2012Metric_Pad1.20x1.40mm_HandSolder";4;"280";;;
