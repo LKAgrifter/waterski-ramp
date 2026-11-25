@@ -40,10 +40,11 @@ static RadioEvents_t RadioEvents;
 //   Ladder buttons     : height select. ONLY works on the SET HEIGHT page (so a bumped button can't move the ramp).
 //
 // PAGES (hold MENU to cycle):  HOME -> WATER -> SET HEIGHT -> MANUAL ADJUST -> DIAGNOSTICS -> NETWORK -> HOME
-// Hidden GAMES page: hold MENU + BACK together on HOME (hold MENU in the games to go back to HOME).
+// Hidden GAMES page: hold UP + DOWN together 2 s on HOME (hold MENU in the games to go back to HOME).
 // HOME only shows status. Pressing a height button anywhere but SET HEIGHT just shows a reminder on HOME.
 // If the OLED times out the menu returns to HOME.
-constexpr unsigned long MENU_HOLD_MS      = 700;    // Hold MENU this long to change page
+constexpr unsigned long MENU_HOLD_MS      = 500;    // Hold MENU this long to change page
+constexpr unsigned long GAMES_HOLD_MS     = 2000;   // Hold UP + DOWN this long (HOME) to open the games
 constexpr unsigned long HEIGHT_HINT_MS    = 2500;   // How long HOME shows "use SET HEIGHT page" after a stray height press
 unsigned long heightHintUntil = 0;
 unsigned long waterHintUntil = 0;     // Same idea for a BACK/WATER press on HOME
@@ -54,6 +55,13 @@ constexpr unsigned long SCREEN_REFRESH_MS = 80;     // Max OLED redraw rate (~12
 // A remote that asks for manual drive must keep sending packets. If nothing arrives for this long
 // the ramp drops back to AUTO (which stops the motor, because Desired_Height tracks Ramp_Height in manual).
 constexpr unsigned long REMOTE_MANUAL_TIMEOUT_MS = 1000;
+
+// REMOTE MANUAL DRIVE. true = remotes can drive the motor by hand from their MANUAL page (hold UP / DOWN), except
+// while CAL REQUIRED or the sensor bypass is on. false = manual drive ONLY with the ramp's own buttons: every remote
+// manual request is refused (whatever firmware the remote runs) and the remotes' MANUAL page says
+// "Manual: at the ramp only" (they learn it from the telemetry). Height picks from remotes are not affected.
+// Only the ramp needs reflashing to change it.
+constexpr bool ALLOW_REMOTE_MANUAL = true;
 
 // ---------------------------------------------------------------------------
 // *** TESTING ONLY: HEIGHT SENSOR SAFETY BYPASS ***
@@ -157,7 +165,7 @@ enum ScreenState //Define screen pages
   SCREEN_WATER,
   SCREEN_NETWORK,
   SCREEN_DIAGNOSTICS,
-  SCREEN_GAME          // Games.ino (hidden: MENU + BACK on HOME)
+  SCREEN_GAME          // Games.ino (hidden: UP + DOWN 2 s on HOME)
 };
 
 ScreenState currentScreen = SCREEN_BOOT;

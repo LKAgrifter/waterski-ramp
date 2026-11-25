@@ -8,7 +8,7 @@ void digitalWrite(uint8_t p,uint8_t v){ if(p>=1&&p<=3){ outv[p]=v; if(inSetup &&
 static int fails=0;
 #define CHECK(c,msg) do{ if(!(c)){printf("FAIL: %s\n",msg);fails++;} else printf("ok:   %s\n",msg);}while(0)
 void run(int ms){ for(int i=0;i<ms;i++){ g_millis++; loop(); } }
-void holdMenu(){ pinv[38]=0; run(800); pinv[38]=1; run(60); }
+void holdMenu(){ pinv[38]=0; run(1100); pinv[38]=1; run(60); }
 int main(){
   for(int i=0;i<64;i++) pinv[i]=1; pinv[34]=0;
   setup(); run(6000);

@@ -19,7 +19,7 @@
 // ---------------------------------------------------------------------------
 // HOOK-UP: already done. The Ramp_Control and Ramp_Remote sketches include the SCREEN_GAME page and call
 // skiGameFrame() from drawScreen(). Keep this file as a tab in BOTH sketches.
-// GETTING IN: the games are a hidden page - on HOME, hold MENU + BACK together for 0.7 s. Hold MENU to leave.
+// GETTING IN: the games are a hidden page - on HOME, hold UP + DOWN together for 2 s. Hold MENU (0.5 s) to leave.
 // If you have an old Ski_Game tab, DELETE it (this file replaces it - both define the same names).
 //
 // NOTES

@@ -33,6 +33,7 @@ VARIANTS = [
     ('remote_cal', 'Ramp_Remote',  'Ramp_Remote',  {'LADDER_CALIBRATION_MODE = false;': 'LADDER_CALIBRATION_MODE = true;'}),
     ('ramp_long',  'Ramp_Control', 'Ramp_Control', {'MOTOR_STEP_TIMEOUT_MS = 100000;': 'MOTOR_STEP_TIMEOUT_MS = 200000;'}),
     ('ramp_sim',   'Ramp_Control', 'Ramp_Control', {'SIM_MODE = false;': 'SIM_MODE = true;'}),
+    ('ramp_no_remote_manual', 'Ramp_Control', 'Ramp_Control', {'ALLOW_REMOTE_MANUAL = true;': 'ALLOW_REMOTE_MANUAL = false;'}),
 ]
 
 # Tests: (name, test file, variant, extra -D defines, slow?)
@@ -56,6 +57,9 @@ TESTCASES = [
     ('ramp_water_timer',         'ramp_water_timer.cpp',        'ramp',       [], False),
     ('bypass_buttons_ramp',      'bypass_buttons.cpp',          'ramp',       [], False),
     ('bypass_buttons_remote',    'bypass_buttons.cpp',          'remote',     ['REMOTE'], False),
+    ('remote_manual_on_ramp',    'remote_manual_flag.cpp',      'ramp',       [], False),
+    ('remote_manual_off_ramp',   'remote_manual_flag.cpp',      'ramp_no_remote_manual', ['OFF'], False),
+    ('remote_manual_flag_remote','remote_manual_flag.cpp',      'remote',     ['REMOTE'], False),
     ('sim_mode',                 'sim_mode.cpp',                'ramp_sim',   ['SIM'], False),
     ('sim_mode_boot_no_sensor',  'sim_mode.cpp',                'ramp_sim',   ['SIM', 'NOSENSOR'], False),
     ('sim_mode_off',             'sim_mode.cpp',                'ramp',       [], False),

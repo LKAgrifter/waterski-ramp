@@ -11,8 +11,8 @@ void setPin(int p,int v){ if(pinv[p]==1 && v==0 && g_isr[p]) g_isr[p](); pinv[p]
 void step(){ g_millis++; loop(); }
 void until(unsigned long t){ while(g_millis<t) step(); }
 void tap(int p,int ms=70){ setPin(p,0); until(g_millis+ms); setPin(p,1); until(g_millis+70); }
-void holdMenu(){ setPin(P_ENT,0); until(g_millis+800); setPin(P_ENT,1); until(g_millis+60); }
-void goGames(){ if(state.oledSleeping) holdMenu(); for(int i=0;i<7 && currentScreen!=SCREEN_HOME;i++) holdMenu(); setPin(P_ENT,0); until(g_millis+100); setPin(P_BACK,0); until(g_millis+900); setPin(P_ENT,1); setPin(P_BACK,1); until(g_millis+100); }
+void holdMenu(){ setPin(P_ENT,0); until(g_millis+1100); setPin(P_ENT,1); until(g_millis+60); }
+void goGames(){ if(state.oledSleeping) holdMenu(); for(int i=0;i<7 && currentScreen!=SCREEN_HOME;i++) holdMenu(); setPin(P_UP,0); setPin(P_DN,0); until(g_millis+2200); setPin(P_UP,1); setPin(P_DN,1); until(g_millis+100); }
 void toMenu(){ tap(P_BACK); until(g_millis+300); }
 void enterGame(int g){ goGames(); until(g_millis+300); toMenu(); gmSel=0; for(int i=1;i<g;i++) tap(P_DN); tap(P_ENT,50); until(g_millis+200); }
 
@@ -21,7 +21,7 @@ int main(){
   g_displayCost=DISPLAY_COST;
   setup(); until(g_millis+6000);
   goGames();
-  CHECK(currentScreen==SCREEN_GAME,"MENU+BACK on HOME reaches the games page");
+  CHECK(currentScreen==SCREEN_GAME,"UP + DOWN 2 s on HOME reaches the games page");
   until(g_millis+1500);
   CHECK(gmCur==0,"lands on the game menu");
 

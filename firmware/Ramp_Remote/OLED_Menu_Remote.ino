@@ -63,7 +63,7 @@ void handleOLEDTimeout()
 // ---------------------------------------------------------------------------
 
 // Page order: HOME -> WATER -> SET HEIGHT -> MANUAL ADJUST -> DIAGNOSTICS -> NETWORK -> HOME
-// GAMES is hidden: hold MENU + BACK together on HOME to open it; hold MENU there to go back to HOME.
+// GAMES is hidden: hold UP + DOWN together 2 s on HOME to open it; hold MENU there to go back to HOME.
 void nextScreen()
 {
     switch (currentScreen)
@@ -74,7 +74,7 @@ void nextScreen()
         case SCREEN_HEIGHT:      changeScreen(SCREEN_DIAGNOSTICS); break;
         case SCREEN_DIAGNOSTICS: changeScreen(SCREEN_NETWORK);     break;
         case SCREEN_NETWORK:     changeScreen(SCREEN_HOME);        break;
-        case SCREEN_GAME:        changeScreen(SCREEN_HOME);        break;   // GAMES is hidden: MENU + BACK on HOME
+        case SCREEN_GAME:        changeScreen(SCREEN_HOME);        break;   // GAMES is hidden: UP + DOWN 2 s on HOME
         default:                 changeScreen(SCREEN_HOME);        break;
     }
 }
@@ -370,6 +370,8 @@ void drawHeightScreen() //Manual adjust page: hold UP / DOWN to drive the ramp's
     // Row 1: how to use it, or what is wrong
     if (!state.Remote_Connected)
         drawRow(1, "NO RAMP LINK!");
+    else if (state.Remote_Manual_Off)
+        drawRow(1, "Manual: at the ramp only"); // The ramp's ALLOW_REMOTE_MANUAL is false
     else if (diag.powerLoss)
         drawRow(1, "CAL: drive at the ramp");   // The ramp refuses remote manual drive until it has found a sensor
     else if (state.Height_Safety_Bypass)
@@ -494,6 +496,7 @@ void buildDiagLines()
     addLine("Sensor bypass: %s", state.Height_Safety_Bypass ? "ON!" : "off");
     addLine("Motor: %s", state.Motor_Running ? (state.Motor_Direction_Up ? "UP" : "DOWN") : "STOP");
     addLine("Mode: %s", state.Manual_Active ? "MANUAL" : "AUTO");
+    addLine("Remote manual: %s", state.Remote_Manual_Off ? "OFF" : "on");
     addLine("Now %s  Set %s", heightStr(state.Ramp_Height, nowHeightKnown()).c_str(), heightStr(state.Desired_Height, setHeightKnown()).c_str());
     addLine("Ramp link: %s", state.Remote_Connected ? "ONLINE" : "OFFLINE");
     addLine("Ladder %d %s", ladderRawAdc, ladderName(readLadderFromRaw(ladderRawAdc)));

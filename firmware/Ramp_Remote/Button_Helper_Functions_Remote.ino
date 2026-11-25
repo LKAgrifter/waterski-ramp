@@ -11,7 +11,7 @@
 //                   Hold UP + DOWN together 2 s = switch this remote between BOAT and TIMER mode (saved)
 //  NETWORK / DIAG : UP / DOWN scroll. NETWORK: hold UP + DOWN together 2 s = change this remote's ID
 //  Every page     : HOLD the MENU button (Enter) to go to the next page.
-//  HOME           : HOLD MENU + BACK together = hidden GAMES page (hold MENU there to leave, back to HOME)
+//  HOME           : HOLD UP + DOWN together 2 s = hidden GAMES page (hold MENU there to leave, back to HOME)
 
 const char *ladderName(LadderButton b)
 {
@@ -67,17 +67,12 @@ void processButtons()
         heightHintUntil = 0;
     }
 
-    // Hidden GAMES page: hold MENU + BACK together on HOME. (Only from HOME, because BACK does things on other pages,
-    // e.g. a BACK press on the Water page adds an hour.) While both are down, MENU doesn't count as a page-change hold.
-    if (currentScreen == SCREEN_HOME && MenuButton.state && BackButton.state)
+    // Hidden GAMES page: hold UP + DOWN together 2 s on HOME (page 1 only - the same hold does other things on other
+    // pages). UP / DOWN do nothing else on HOME, so holding them can't drive anything.
+    if (currentScreen == SCREEN_HOME && UpButton.state && DownButton.state)
     {
-        unsigned long since = (MenuButton.pressedTime > BackButton.pressedTime) ? MenuButton.pressedTime : BackButton.pressedTime;
-        if (millis() - since >= MENU_HOLD_MS)
-        {
-            MenuButton.longPressHandled = true;   // Still holding them as the games open: don't page or act again
-            BackButton.longPressHandled = true;
+        if (upDownHeld(GAMES_HOLD_MS))
             changeScreen(SCREEN_GAME);
-        }
         return;
     }
 

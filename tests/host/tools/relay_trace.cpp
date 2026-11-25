@@ -10,7 +10,7 @@ void digitalWrite(uint8_t p,uint8_t v){ if(p>=1&&p<=3){ outv[p]=v; if(inSetup &&
 void logEdges(const char* tag){ const int P[3]={2,3,1}; const char* N[3]={"POWER","DIR","PUMP"};
   for(int i=0;i<3;i++) if(outv[P[i]]!=prevOut[P[i]]){ printf("  t=%6lu ms  %-5s -> %s   (%s)\n",g_millis,N[i],outv[P[i]]?"ON":"off",tag); prevOut[P[i]]=outv[P[i]]; } }
 void run(int ms,const char* tag){ for(int i=0;i<ms;i++){ g_millis++; loop(); logEdges(tag);} }
-void holdMenu(){ pinv[38]=0; run(800,"menu"); pinv[38]=1; run(60,"menu"); }
+void holdMenu(){ pinv[38]=0; run(1100,"menu"); pinv[38]=1; run(60,"menu"); }
 int main(){
   for(int i=0;i<64;i++) pinv[i]=1;
   setup(); run(6000,"boot");

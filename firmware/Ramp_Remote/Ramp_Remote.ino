@@ -43,10 +43,11 @@ static RadioEvents_t RadioEvents;
 //   Ladder buttons     : height select. ONLY works on the SET HEIGHT page (so a bumped button can't move the ramp).
 //
 // PAGES (hold MENU to cycle):  HOME -> WATER -> SET HEIGHT -> MANUAL ADJUST -> DIAGNOSTICS -> NETWORK -> HOME
-// Hidden GAMES page: hold MENU + BACK together on HOME (hold MENU in the games to go back to HOME).
+// Hidden GAMES page: hold UP + DOWN together 2 s on HOME (hold MENU in the games to go back to HOME).
 // HOME only shows status. Pressing a height button anywhere but SET HEIGHT just shows a reminder on HOME.
 // If the OLED times out the menu returns to HOME.
-constexpr unsigned long MENU_HOLD_MS      = 700;    // Hold MENU this long to change page
+constexpr unsigned long MENU_HOLD_MS      = 500;    // Hold MENU this long to change page
+constexpr unsigned long GAMES_HOLD_MS     = 2000;   // Hold UP + DOWN this long (HOME) to open the games
 constexpr unsigned long HEIGHT_HINT_MS    = 2500;   // How long HOME shows "use SET HEIGHT page" after a stray height press
 unsigned long heightHintUntil = 0;
 unsigned long waterHintUntil = 0;     // Same idea for a BACK/WATER press on HOME
@@ -127,7 +128,7 @@ enum ScreenState //Define screen pages
   SCREEN_WATER,
   SCREEN_NETWORK,
   SCREEN_DIAGNOSTICS,
-  SCREEN_GAME          // Games.ino (hidden: MENU + BACK on HOME)
+  SCREEN_GAME          // Games.ino (hidden: UP + DOWN 2 s on HOME)
 };
 
 ScreenState currentScreen = SCREEN_BOOT;
@@ -204,6 +205,7 @@ struct SystemState
 
   bool Height_Safety_Bypass = false; //TESTING ONLY: ramp has its height sensor safeties bypassed (mirrored from the ramp)
   bool Manual_Active = false;        //Ramp reports it is in manual drive (mirrored from the ramp)
+  bool Remote_Manual_Off = false;    //Ramp doesn't allow manual drive from remotes at all (mirrored from the ramp)
 
   bool packetRecieved = false;
 

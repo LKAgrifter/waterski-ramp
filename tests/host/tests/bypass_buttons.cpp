@@ -33,7 +33,7 @@ void run(int ms){ for(int i=0;i<ms;i++){ g_millis++;
     if(outv[2]) motorPowered=true;
 #endif
   } }
-void holdMenu(){ pinv[38]=0; run(800); pinv[38]=1; run(60); }
+void holdMenu(){ pinv[38]=0; run(1100); pinv[38]=1; run(60); }
 void holdBoth(int ms,int gap=0){ pinv[7]=0; run(gap); pinv[6]=0; run(ms); pinv[7]=1; pinv[6]=1; run(1500); }
 
 int main(){

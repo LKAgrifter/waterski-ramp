@@ -7,7 +7,7 @@ void pinMode(uint8_t,uint8_t){} void digitalWrite(uint8_t,uint8_t){} int digital
 static int fails=0;
 #define CHECK(c,msg) do{ if(!(c)){printf("FAIL: %s\n",msg);fails++;} else printf("ok:   %s\n",msg);}while(0)
 void run(int ms){ for(int i=0;i<ms;i++){ g_millis++; loop(); } }
-void holdMenu(){ pinv[38]=0; run(800); pinv[38]=1; run(60); }
+void holdMenu(){ pinv[38]=0; run(1100); pinv[38]=1; run(60); }
 int main(){
   for(int i=0;i<64;i++) pinv[i]=1;
   setup(); run(6000);
@@ -20,7 +20,7 @@ int main(){
   pinv[38]=0; run(200); pinv[38]=1; run(60); CHECK(currentScreen==SCREEN_HOME,"short tap does not change page");
   // wake-from-sleep: press is swallowed, then paging works again
   holdMenu(); run(61000); CHECK(state.oledSleeping && currentScreen==SCREEN_HOME,"timeout -> sleeping, back on HOME");
-  pinv[38]=0; run(800); pinv[38]=1; run(60); CHECK(currentScreen==SCREEN_HOME,"first hold only wakes the screen (does not change page)");
+  pinv[38]=0; run(1100); pinv[38]=1; run(60); CHECK(currentScreen==SCREEN_HOME,"first hold only wakes the screen (does not change page)");
   holdMenu(); CHECK(currentScreen==SCREEN_WATER,"next hold changes page normally");
   printf("\n%s (%d failures)\n",fails?"SOME FAILED":"ALL PASSED",fails); return fails;
 }
