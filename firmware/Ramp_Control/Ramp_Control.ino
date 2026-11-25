@@ -59,7 +59,7 @@ constexpr unsigned long REMOTE_MANUAL_TIMEOUT_MS = 1000;
 // *** TESTING ONLY: HEIGHT SENSOR SAFETY BYPASS ***
 // While the bypass is ON the ramp ignores: the height-sensor fault, the "calibration required" lockout
 // and the top/bottom soft limits. AUTO mode is disabled (height buttons are ignored); only manual drive works.
-// The 30 s motor run timeout still applies. The bypass is never saved - it is OFF after every reboot unless
+// The per-step motor timeout (MOTOR_STEP_TIMEOUT_MS) still applies. The bypass is never saved - it is OFF after every reboot unless
 // HEIGHT_SAFETY_BYPASS_AT_BOOT is true.
 //   ALLOW_HEIGHT_SAFETY_BYPASS    : master switch. false = the feature is dead (menu, remote and boot flag all ignored).
 //   HEIGHT_SAFETY_BYPASS_AT_BOOT  : true = ramp boots with the bypass already ON (bench testing without sensors).
