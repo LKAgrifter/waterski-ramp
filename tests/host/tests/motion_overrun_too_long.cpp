@@ -20,7 +20,7 @@ static int fails=0;
 static int starts=0; static int prevPow=0;
 static int wrongDir=0; static int lastDirOut=0; static unsigned long dirChangedAt=0;
 void run(int ms){ for(int i=0;i<ms;i++){ g_millis++; loop(); if(outv[3]!=lastDirOut){ lastDirOut=outv[3]; dirChangedAt=g_millis; if(outv[2]) wrongDir++; } if(outv[2] && (outv[3]!=(int)state.Motor_Direction_Up || g_millis-dirChangedAt<95)) wrongDir++; physics(); if(outv[2]&&!prevPow) starts++; prevPow=outv[2]; } }
-void holdMenu(){ pinv[38]=0; run(800); pinv[38]=1; run(60); }
+void holdMenu(){ pinv[38]=0; run(1100); pinv[38]=1; run(60); }
 void goPage(ScreenState s){ if(state.oledSleeping) holdMenu(); for(int i=0;i<8 && currentScreen!=s;i++) holdMenu(); }
 void pressH(int v){ goPage(SCREEN_SET_HEIGHT); adc=v; run(120); adc=3200; run(120); }
 const int L4=2980,L45=2610,L5=1960,L55=0;

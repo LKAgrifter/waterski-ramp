@@ -38,7 +38,7 @@ void sendCmd(uint8_t mode,int8_t h=-1,uint8_t seq=0){ static uint8_t ctr=0; Comm
 uint8_t lastAck=ACK_NONE;
 bool remoteDrive(){ bool ran=false; for(int i=0;i<2000;i++){ if(i%150==0) sendCmd(1); run(1); if(outv[2]) ran=true; } lastAck=pendingAckResult; sendCmd(0); run(1500); return ran; }
 uint8_t telemetryFlags(){ run(4000); TelemetryPacket t; memcpy(&t,Radio.last,sizeof(t)); return t.flags; }   // last broadcast the ramp sent
-void holdMenu(){ pinv[38]=0; run(800); pinv[38]=1; run(60); }
+void holdMenu(){ pinv[38]=0; run(1100); pinv[38]=1; run(60); }
 int main(){
   for(int i=0;i<64;i++) pinv[i]=1;
   pinv[34]=0;   // parked on the 4 ft sensor (calibrated)

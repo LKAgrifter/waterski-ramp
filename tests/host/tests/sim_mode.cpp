@@ -49,7 +49,7 @@ void physics(){
   pos += dir*0.5/STEP_MS; if(pos<3.9) pos=3.9; if(pos>5.6) pos=5.6;
 }
 void run(int ms){ for(int i=0;i<ms;i++){ g_millis++; if(feeding && g_millis%50==0){ g_serialIn+="@S "+std::to_string(sensorMask())+"\n"; } loop(); pumpSerial(); physics(); } }
-void holdMenu(){ pinv[38]=0; run(800); pinv[38]=1; run(60); }
+void holdMenu(){ pinv[38]=0; run(1100); pinv[38]=1; run(60); }
 void goPage(ScreenState s){ if(state.oledSleeping) holdMenu(); for(int i=0;i<8 && currentScreen!=s;i++) holdMenu(); }
 void pressH(int v){ goPage(SCREEN_SET_HEIGHT); adc=v; run(120); adc=3200; run(120); }
 bool runUntilStopped(int maxMs){ int quiet=0; for(int i=0;i<maxMs;i++){ run(1); if(!state.Motor_Running && !state.DirectionChangePending && !state.MotorPowerPending) quiet++; else quiet=0; if(quiet>3000) return true; } return false; }

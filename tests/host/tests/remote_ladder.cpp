@@ -11,7 +11,7 @@ int main(){
   for(int i=0;i<64;i++) pinv[i]=1; setup(); run(6000);
 #if !CALMODE
   // Heights only work on the SET HEIGHT page (HOME -> WATER -> SET HEIGHT)
-  for(int i=0;i<2;i++){ pinv[38]=0; run(800); pinv[38]=1; run(60); }
+  for(int i=0;i<2;i++){ pinv[38]=0; run(1100); pinv[38]=1; run(60); }
   if(currentScreen!=SCREEN_SET_HEIGHT){ printf("FAIL: could not reach SET HEIGHT\n"); fails++; }
 #endif
   const int v[4]={2980,2610,1960,0}; const float h[4]={4.0f,4.5f,5.0f,5.5f};

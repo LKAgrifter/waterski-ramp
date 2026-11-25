@@ -8,8 +8,8 @@ void digitalWrite(uint8_t p,uint8_t v){ if(p>=1&&p<=3){ outv[p]=v; if(inSetup &&
 static int fails=0;
 #define CHECK(c,msg) do{ if(!(c)){printf("FAIL: %s\n",msg);fails++;} else printf("ok:   %s\n",msg);}while(0)
 void run(int ms){ for(int i=0;i<ms;i++){ g_millis++; loop(); } }
-void holdMenu(){ pinv[38]=0; run(800); pinv[38]=1; run(60); }
-void comboGames(){ pinv[38]=0; run(150); pinv[39]=0; run(900); pinv[38]=1; pinv[39]=1; run(100); }
+void holdMenu(){ pinv[38]=0; run(1100); pinv[38]=1; run(60); }
+void comboGames(){ pinv[7]=0; pinv[6]=0; run(2200); pinv[7]=1; pinv[6]=1; run(100); }
 const int lv[4]={2980,2610,1960,0}; const float lh[4]={4.0f,4.5f,5.0f,5.5f};
 bool pressAll(){ // press every height button; true if anything tried to change the height
   bool changed=false;
@@ -43,13 +43,17 @@ int main(){
     holdMenu();
   }
   CHECK(currentScreen==SCREEN_HOME,"6 holds cycle back to HOME (games hidden)");
-  comboGames(); CHECK(currentScreen==SCREEN_GAME,"MENU+BACK on HOME opens GAMES"); { char m[80]; CHECK(!pressAll(),"GAMES page: height buttons do nothing"); (void)m; } holdMenu(); CHECK(currentScreen==SCREEN_HOME,"hold MENU in games -> HOME");
+  comboGames(); CHECK(currentScreen==SCREEN_GAME,"UP + DOWN 2 s on HOME opens GAMES"); { char m[80]; CHECK(!pressAll(),"GAMES page: height buttons do nothing"); (void)m; } holdMenu(); CHECK(currentScreen==SCREEN_HOME,"hold MENU in games -> HOME");
   pinv[39]=0; run(1500); pinv[39]=1; run(100); CHECK(currentScreen==SCREEN_HOME,"holding BACK alone on HOME does nothing");
-  pinv[38]=0; run(300); pinv[38]=1; pinv[39]=0; run(1000); pinv[39]=1; run(100); CHECK(currentScreen==SCREEN_HOME,"MENU then BACK one after the other (not together) does not open games");
-  holdMenu(); CHECK(currentScreen==SCREEN_WATER,"on WATER");
-  comboGames(); CHECK(currentScreen!=SCREEN_GAME,"MENU+BACK on another page does NOT open games");
+  pinv[38]=0; pinv[39]=0; run(2500); pinv[38]=1; pinv[39]=1; run(100); CHECK(currentScreen!=SCREEN_GAME,"the old MENU + BACK hold no longer opens games");
   for(int i=0;i<7 && currentScreen!=SCREEN_HOME;i++) holdMenu();
-  pinv[39]=0; run(300); pinv[38]=0; run(900); pinv[38]=1; pinv[39]=1; run(100); CHECK(currentScreen==SCREEN_GAME,"BACK first then MENU (held together) also opens games");
+  pinv[7]=0; pinv[6]=0; run(1500); pinv[7]=1; pinv[6]=1; run(100); CHECK(currentScreen==SCREEN_HOME,"UP + DOWN for 1.5 s does not open games");
+  pinv[7]=0; run(300); pinv[7]=1; pinv[6]=0; run(2500); pinv[6]=1; run(100); CHECK(currentScreen==SCREEN_HOME,"UP then DOWN one after the other (not together) does not open games");
+  pinv[38]=0; run(800); pinv[38]=1; run(60); CHECK(currentScreen==SCREEN_HOME,"MENU held 0.8 s does not change page (the hold is 1 s)");
+  holdMenu(); CHECK(currentScreen==SCREEN_WATER,"on WATER");
+  comboGames(); CHECK(currentScreen!=SCREEN_GAME,"UP + DOWN on another page does NOT open games");
+  for(int i=0;i<7 && currentScreen!=SCREEN_HOME;i++) holdMenu();
+  pinv[6]=0; run(300); pinv[7]=0; run(2100); pinv[7]=1; pinv[6]=1; run(100); CHECK(currentScreen==SCREEN_GAME,"DOWN first then UP (held together) also opens games");
   holdMenu(); CHECK(currentScreen==SCREEN_HOME,"(back to HOME)");
   // sleeping screen: press wakes only
   run(61000); CHECK(state.oledSleeping,"screen asleep"); CHECK(!pressAll(),"asleep: height press only wakes the screen");

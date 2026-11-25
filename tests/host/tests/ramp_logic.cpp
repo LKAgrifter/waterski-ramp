@@ -29,7 +29,7 @@ int main(){
   CHECK(!state.Motor_Running && state.Control_Mode==MODE_AUTO,"UP button does nothing on HOME");
 
   // 2. Hold MENU -> Manual page
-  hold(38,800); release(38); CHECK(currentScreen==SCREEN_WATER,"hold MENU -> WATER page"); hold(38,800); release(38); CHECK(currentScreen==SCREEN_SET_HEIGHT,"hold MENU -> SET HEIGHT page"); hold(38,800); CHECK(currentScreen==SCREEN_HEIGHT,"hold MENU again -> MANUAL page"); release(38);
+  hold(38,1100); release(38); CHECK(currentScreen==SCREEN_WATER,"hold MENU -> WATER page"); hold(38,1100); release(38); CHECK(currentScreen==SCREEN_SET_HEIGHT,"hold MENU -> SET HEIGHT page"); hold(38,1100); CHECK(currentScreen==SCREEN_HEIGHT,"hold MENU again -> MANUAL page"); release(38);
   // a button already held when arriving must not drive
   pinv[7]=0; run(100); release(7,100);
   // 3. Local manual up
@@ -74,7 +74,7 @@ int main(){
 
   // 4. Leaving the page mid-drive stops it
   hold(7,900); CHECK(state.Motor_Running,"driving again");
-  pinv[38]=0; run(800); CHECK(currentScreen==SCREEN_DIAGNOSTICS,"MENU hold while driving -> DIAGNOSTICS page"); CHECK(!state.Motor_Running,"changing page stops the motor");
+  pinv[38]=0; run(1100); CHECK(currentScreen==SCREEN_DIAGNOSTICS,"MENU hold while driving -> DIAGNOSTICS page"); CHECK(!state.Motor_Running,"changing page stops the motor");
   release(38); release(7);
 
   // 5. Remote manual + 1 s dead-man
@@ -90,9 +90,9 @@ int main(){
 
   // 7. Local button beats remote
   { ScreenState order[6]={SCREEN_NETWORK,SCREEN_HOME,SCREEN_WATER,SCREEN_SET_HEIGHT,SCREEN_HEIGHT,SCREEN_DIAGNOSTICS};
-    bool good=true; for(int k=0;k<6;k++){ pinv[38]=0; run(800); release(38); if(currentScreen!=order[k]) good=false; }
+    bool good=true; for(int k=0;k<6;k++){ pinv[38]=0; run(1100); release(38); if(currentScreen!=order[k]) good=false; }
     CHECK(good,"full cycle (games hidden): DIAG->NETWORK->HOME->WATER->SET HEIGHT->MANUAL->DIAG"); }
-  while(currentScreen!=SCREEN_HEIGHT){ pinv[38]=0; run(800); release(38); }
+  while(currentScreen!=SCREEN_HEIGHT){ pinv[38]=0; run(1100); release(38); }
   CHECK(currentScreen==SCREEN_HEIGHT,"back on MANUAL");
   hold(7,1200); sendCmd(2); run(10);
   CHECK(state.Control_Source==SOURCE_LOCAL,"remote manual refused while local button held"); release(7);
@@ -142,7 +142,7 @@ int main(){
   sendCmd(0,-1,0,-1,21); CHECK(!state.Water_Relay && outv[1]==0,"remote water off");
 
   // 11. Screen timeout -> HOME
-  hold(38,700+100); release(38); hold(38,800); release(38);
+  hold(38,1100); release(38); hold(38,1100); release(38);
   CHECK(currentScreen!=SCREEN_HOME,"on a non-home page before timeout");
   run(61000);
   CHECK(state.oledSleeping && currentScreen==SCREEN_HOME,"OLED timeout -> HOME page");
@@ -150,7 +150,7 @@ int main(){
   CHECK(!state.Motor_Running,"wake-up press is swallowed");
 
   // 12. Regression: after leaving the 4ft switch, manual DOWN must still be allowed (Ramp_Height is stale at 4.0)
-  while(currentScreen!=SCREEN_HEIGHT){ pinv[38]=0; run(800); release(38); }
+  while(currentScreen!=SCREEN_HEIGHT){ pinv[38]=0; run(1100); release(38); }
   pinv[34]=0; run(100);
   hold(6,1200); CHECK(!state.Motor_Running,"manual DOWN blocked while ON the 4ft switch"); release(6,100);
   pinv[34]=1; run(100);   // ramp has moved up off the bottom switch

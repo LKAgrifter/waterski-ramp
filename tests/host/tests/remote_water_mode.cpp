@@ -32,7 +32,7 @@ void run(int ms){ for(int i=0;i<ms;i++){ g_millis++;
       OnRxDone((uint8_t*)&t,sizeof(t),-60,7); }
     loop(); } }
 void press(int pin,int ms=80){ pinv[pin]=0; run(ms); pinv[pin]=1; run(80); }
-void holdMenu(){ pinv[38]=0; run(800); pinv[38]=1; run(60); }
+void holdMenu(){ pinv[38]=0; run(1100); pinv[38]=1; run(60); }
 void goPage(ScreenState s){ if(state.oledSleeping) holdMenu(); for(int i=0;i<8 && currentScreen!=s;i++) holdMenu(); }
 void holdUpDown(int ms){ pinv[7]=0; pinv[6]=0; run(ms); pinv[7]=1; pinv[6]=1; run(100); }
 

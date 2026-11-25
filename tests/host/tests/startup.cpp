@@ -9,7 +9,7 @@ static int fails=0;
 #define CHECK(c,msg) do{ if(!(c)){printf("FAIL: %s\n",msg);fails++;} else printf("ok:   %s\n",msg);}while(0)
 static bool moved=false;
 void run(int ms){ for(int i=0;i<ms;i++){ g_millis++; loop(); if(outv[2]) moved=true; } }
-void holdMenu(){ pinv[38]=0; run(800); pinv[38]=1; run(60); }
+void holdMenu(){ pinv[38]=0; run(1100); pinv[38]=1; run(60); }
 void sendHeight(int8_t idx){ static uint8_t seq=10, ctr=0; CommandPacket c; c.remoteId=1; c.seq=seq++; c.targetHeightIndex=idx; c.waterCommand=-1; c.remoteControlMode=0; c.bypassCommand=-1; c.txCounter=ctr++; OnRxDone((uint8_t*)&c,sizeof(c),-60,7); }
 int main(){
   for(int i=0;i<64;i++) pinv[i]=1;

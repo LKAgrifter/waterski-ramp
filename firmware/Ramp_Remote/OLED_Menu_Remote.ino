@@ -63,7 +63,7 @@ void handleOLEDTimeout()
 // ---------------------------------------------------------------------------
 
 // Page order: HOME -> WATER -> SET HEIGHT -> MANUAL ADJUST -> DIAGNOSTICS -> NETWORK -> HOME
-// GAMES is hidden: hold MENU + BACK together on HOME to open it; hold MENU there to go back to HOME.
+// GAMES is hidden: hold UP + DOWN together 2 s on HOME to open it; hold MENU there to go back to HOME.
 void nextScreen()
 {
     switch (currentScreen)
@@ -74,7 +74,7 @@ void nextScreen()
         case SCREEN_HEIGHT:      changeScreen(SCREEN_DIAGNOSTICS); break;
         case SCREEN_DIAGNOSTICS: changeScreen(SCREEN_NETWORK);     break;
         case SCREEN_NETWORK:     changeScreen(SCREEN_HOME);        break;
-        case SCREEN_GAME:        changeScreen(SCREEN_HOME);        break;   // GAMES is hidden: MENU + BACK on HOME
+        case SCREEN_GAME:        changeScreen(SCREEN_HOME);        break;   // GAMES is hidden: UP + DOWN 2 s on HOME
         default:                 changeScreen(SCREEN_HOME);        break;
     }
 }

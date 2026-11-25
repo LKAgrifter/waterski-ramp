@@ -53,13 +53,13 @@ Read this before changing behaviour. Settings are named constants near the top o
 
 ## Behaviour and safety rules (decisions made on purpose)
 
-**Menus (both units, identical):** hold MENU (0.7 s) to step HOME -> WATER -> SET HEIGHT -> MANUAL ->
+**Menus (both units, identical):** hold MENU (1 s) to step HOME -> WATER -> SET HEIGHT -> MANUAL ->
 DIAGNOSTICS -> NETWORK -> HOME. The screen times out after 1 minute and always returns to HOME.
 - HOME shows status only. A stray height press there shows "Set height: page 3"; a BACK/WATER press shows
   "Water: page 2".
 - **Height buttons only work on SET HEIGHT** (glovebox protection on the remote).
 - UP/DOWN motor buttons only work on MANUAL. A press must *start* on that page (armed buttons).
-- Hidden GAMES page: hold MENU + BACK together on HOME. `Games.ino` is the same file in both sketches.
+- Hidden GAMES page: hold UP + DOWN together 2 s on HOME (page 1 only). `Games.ino` is the same file in both sketches.
 - Heights show **blank** when unknown (never located, CAL REQUIRED, or no ramp link on a remote).
 - **Remote ID** (1-4, must be unique per ramp) is a saved setting on each remote: NETWORK page, hold UP + DOWN
   together 2 s to step it. Stored in flash (`Preferences` key `RemoteId`), so one firmware file serves every remote and

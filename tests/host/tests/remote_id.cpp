@@ -11,7 +11,7 @@ static uint8_t telCtr=0;
 void run(int ms){ for(int i=0;i<ms;i++){ g_millis++;
     if(g_millis%250==0){ TelemetryPacket t; memset(&t,0,sizeof(t)); ((uint8_t*)&t)[0]=0xA1; t.rampHeightIndex=0; t.desiredHeightIndex=0; t.txCounter=telCtr++; OnRxDone((uint8_t*)&t,sizeof(t),-60,7); }
     loop(); } }   // a ramp sending telemetry at 4 Hz
-void holdMenu(){ pinv[38]=0; run(800); pinv[38]=1; run(60); }
+void holdMenu(){ pinv[38]=0; run(1100); pinv[38]=1; run(60); }
 void holdBoth(int ms){ pinv[7]=0; pinv[6]=0; run(ms); pinv[7]=1; pinv[6]=1; }
 void goPage(ScreenState s){ if(state.oledSleeping) holdMenu(); for(int i=0;i<8 && currentScreen!=s;i++) holdMenu(); }
 uint8_t sentRemoteId(){   // press a height button on SET HEIGHT and look at the command that goes out
