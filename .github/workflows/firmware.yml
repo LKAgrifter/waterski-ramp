@@ -67,6 +67,14 @@ jobs:
           done
           ls -l out/*
 
+      - name: Compile the simulation build (checked only, not published)
+        run: |
+          mkdir -p sim/Ramp_Control
+          cp firmware/Ramp_Control/* sim/Ramp_Control/
+          sed -i 's/constexpr bool SIM_MODE = false;/constexpr bool SIM_MODE = true;/' sim/Ramp_Control/Ramp_Control.ino
+          grep -q 'constexpr bool SIM_MODE = true;' sim/Ramp_Control/Ramp_Control.ino
+          arduino-cli compile --fqbn "$FQBN" --warnings default --output-dir out-sim sim/Ramp_Control
+
       - name: Assemble flasher site
         run: |
           set -e

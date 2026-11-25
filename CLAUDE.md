@@ -27,11 +27,12 @@ Read `docs/DEVELOPMENT.md` first: hardware facts, safety rules and the reasons b
 
 ## Builds and flasher
 - `.github/workflows/firmware.yml` compiles both sketches with arduino-cli and publishes `flasher/` (ESP Web Tools)
-  to GitHub Pages. It has not been run yet: check it on the first push and fix if needed. Pin `CORE_VERSION` /
-  `LIBRARY_VERSION` to the versions the owner uses.
+  to GitHub Pages (https://lkagrifter.github.io/waterski-ramp/). It also compile-checks the `SIM_MODE` build. Pin
+  `CORE_VERSION` / `LIBRARY_VERSION` to the versions the owner uses (CI currently gets the latest).
 - Remote ID is a saved setting (NETWORK page, hold BACK 2 s), not a code constant.
 
 ## Related repo
 The PC simulator / 3D / AR showcase lives in the separate `waterski-ramp-sim` repo, normally cloned next to this
-one. A firmware "simulation mode" for it (limit switches from USB, relay states to USB) belongs in THIS repo,
-behind a compile-time flag that defaults to off.
+one. The firmware side of it is `SIM_MODE` (main tab, default false) and `Sim_Mode_Ramp.ino` in THIS repo:
+height sensors from USB, relay states to USB, relay pins never switched. Its serial protocol is shared with the
+simulator page: change both repos together and bump `SIM_PROTOCOL_VERSION`. Test: `tests/host/tests/sim_mode.cpp`.

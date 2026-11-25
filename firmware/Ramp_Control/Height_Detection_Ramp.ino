@@ -30,6 +30,14 @@ LimitSwitch limits[] =
 
 constexpr uint8_t LIMIT_COUNT = sizeof(limits) / sizeof(limits[0]);
 
+// Raw (not debounced) reading of switch i: true = triggered. In simulation mode it comes from the PC instead of the pin.
+bool readLimitRaw(uint8_t i)
+{
+  if (SIM_MODE)
+    return simSensorActive(i);
+  return digitalRead(limits[i].pin) == LIMIT_ACTIVE_LEVEL;
+}
+
 
 void powerLossRecovery() //This is to aid in the height calibration after power loss.
 {
@@ -71,7 +79,7 @@ void initHeight()
 
   for(uint8_t i = 0; i < LIMIT_COUNT; i++)
   {
-    bool raw = (digitalRead(limits[i].pin) == LIMIT_ACTIVE_LEVEL);
+    bool raw = readLimitRaw(i);
 
     limits[i].active = raw;
     limits[i].lastReading = raw;
@@ -116,7 +124,7 @@ void updateHeight()
 
   for(uint8_t i = 0; i < LIMIT_COUNT; i++)
   {
-    bool raw = (digitalRead(limits[i].pin) == LIMIT_ACTIVE_LEVEL);
+    bool raw = readLimitRaw(i);
 
     if(raw != limits[i].lastReading)
     {

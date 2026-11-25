@@ -155,8 +155,8 @@ void maskToString(uint8_t mask, char *out, size_t n)
 // Title bar with the page number on the right
 void drawTitle(const char *title)
 {
-    char pg[8];
-    snprintf(pg, sizeof(pg), "%u/6", pageNumber());
+    char pg[12];
+    snprintf(pg, sizeof(pg), SIM_MODE ? "SIM %u/6" : "%u/6", pageNumber());
 
     display.setFont(ArialMT_Plain_10);
     display.setTextAlignment(TEXT_ALIGN_LEFT);
@@ -214,6 +214,10 @@ void drawBootScreen()
         display.clear();
         display.drawString(0, 0, "Ramp-O-Matic Initiallizing");
         display.drawString(0, 15, "Ramp Side Controller");
+        if (SIM_MODE)
+        {
+            display.drawString(0, 45, "** SIMULATION MODE **");
+        }
         if (heightSafetyBypassActive())
         {
             display.drawString(0, 30, "!! SENSOR BYPASS ON !!");
@@ -337,6 +341,12 @@ void drawHomeScreen() //Draw the home screen. Status only: no buttons do anythin
     else if (heightSafetyBypassActive())
         status = "BYPASS ON!";
     display.drawString(0, 39, status);
+    if (SIM_MODE)
+    {
+        display.setTextAlignment(TEXT_ALIGN_RIGHT);
+        display.drawString(127, 39, "SIM");
+        display.setTextAlignment(TEXT_ALIGN_LEFT);
+    }
 
     // Row 4: link status - or, just after a stray height / water press, which page does that
     if ((long)(heightHintUntil - millis()) > 0)

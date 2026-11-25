@@ -98,6 +98,15 @@ motor timeout still applies.
 **Ladder calibration mode:** `LADDER_CALIBRATION_MODE = true` shows the raw reading on HOME (and Serial at 115200)
 and disables height selection. Set back to false afterwards.
 
+**Simulation mode:** `SIM_MODE = true` (ramp sketch only, false for real use) turns the ramp board into the heart of
+the PC simulator (separate `waterski-ramp-sim` repo). The four height sensors are read from USB serial instead of
+their pins, and relay changes are reported over USB **instead of switching the relays** (the relay pins stay off, so
+a simulation build can't move a real ramp). The screens show "SIM". Everything else is the normal firmware: menus,
+buttons, remotes, LoRa, safety logic and timeouts. At boot it waits up to 1 s for the PC's first sensor reading so a
+ramp parked on a (virtual) sensor is found like the real one. If the PC goes quiet for 500 ms every sensor reads
+off. All the code is in `Sim_Mode_Ramp.ino`, including the serial protocol (`@S` sensors in, `@R` relays and `@T`
+status out, `@HELLO` with `SIM_PROTOCOL_VERSION`). Change the protocol in both repos together and bump the version.
+
 ## Editing the sketches safely (Arduino IDE rules)
 
 The Arduino IDE glues all tabs of a sketch into one file: **the main tab first, then the others alphabetically**,
@@ -110,17 +119,17 @@ and auto-generates function prototypes. That auto-generation is unreliable, so:
 
 ## Tests
 
-`tests/host/run_tests.py` builds the real sketches for a PC with stand-in libraries and runs ~26 scenario tests
+`tests/host/run_tests.py` builds the real sketches for a PC with stand-in libraries and runs ~30 scenario tests
 (menus, radio packets, a simulated ramp moving at the real speed with magnetic sensor zones, faults, power cycles,
-the games). It needs Python 3 and g++. It catches logic bugs; it cannot catch wiring, real relay timing, radio
+the games, simulation mode). It needs Python 3 and g++. It catches logic bugs; it cannot catch wiring, real relay timing, radio
 range or library-version problems. See `tests/host/README.md`.
 
 ## Builds and the browser flasher
 
 - `.github/workflows/firmware.yml` runs on every push to `main` (firmware, flasher or tests changed), on a
   published release, or by hand: host tests first, then `arduino-cli` compiles both sketches for
-  `Heltec-esp32:esp32:heltec_wifi_lora_32_V3`, and the `flasher/` page plus the binaries are published to GitHub
-  Pages. On a release, a zip of the binaries is attached too.
+  `Heltec-esp32:esp32:heltec_wifi_lora_32_V3` (plus a compile-only check of the `SIM_MODE` build), and the
+  `flasher/` page plus the binaries are published to GitHub Pages. On a release, a zip of the binaries is attached too.
 - **Pin the board package and library versions** in the workflow (`CORE_VERSION`, `LIBRARY_VERSION`) to the ones
   that work, and use the same in the Arduino IDE guide.
 - The flasher (ESP Web Tools, pinned version) writes four parts: bootloader at 0x0, partition table 0x8000,
@@ -151,4 +160,3 @@ Everything motor-specific is in `Motor_and_Failsafes_Ramp.ino` plus a few consta
 - Games high scores are kept in RAM only.
 - Current sensing (GPIO 4) is not implemented yet: the overcurrent fault and its screen/radio flags exist, but nothing sets it (TODO in `updateMotorControl()`).
 - Remote LEDs: there's no LED tab for the remote yet.
-- Not yet compiled with the ESP32 toolchain in CI; only the host tests run automatically.

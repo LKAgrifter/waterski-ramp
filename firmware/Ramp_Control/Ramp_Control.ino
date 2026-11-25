@@ -68,6 +68,19 @@ constexpr unsigned long REMOTE_MANUAL_TIMEOUT_MS = 1000;
 constexpr bool ALLOW_HEIGHT_SAFETY_BYPASS   = true;
 constexpr bool HEIGHT_SAFETY_BYPASS_AT_BOOT = false;
 
+// ---------------------------------------------------------------------------
+// *** SIMULATION MODE (for the PC simulator - leave false for real use) ***
+// true = this board pretends to be on the ramp for the simulator page (separate "waterski-ramp-sim" repo):
+//   - the four height sensors are read from USB serial ("@S" lines from the PC) instead of the sensor pins
+//   - relay changes are reported over USB ("@R" lines) INSTEAD of switching the relays: the relay pins stay OFF,
+//     so a simulation build can't move a real ramp
+//   - the screens show "SIM"
+// Everything else (menus, buttons, remotes, LoRa, safety logic, timeouts) is the normal firmware.
+// Details and the serial protocol: Sim_Mode_Ramp.ino. Never leave a simulation build on the real ramp.
+// ---------------------------------------------------------------------------
+constexpr bool SIM_MODE = false;
+constexpr uint8_t SIM_PROTOCOL_VERSION = 1;   // Sent in "@HELLO". Change it whenever the serial protocol changes.
+
 /// --- Schematic Peripherals Pin Mapping (J2 / J3 Headers) ---
 
 //Random Variables
@@ -218,7 +231,17 @@ constexpr uint8_t Pump_Relay    = 1; //Ramp Water Pump Relay
 // every relay write in the code goes through setRelay().)
 constexpr uint8_t RELAY_ON  = HIGH;
 constexpr uint8_t RELAY_OFF = LOW;
-void setRelay(uint8_t pin, bool on) { digitalWrite(pin, on ? RELAY_ON : RELAY_OFF); }
+void simSetRelay(uint8_t pin, bool on);   // Sim_Mode_Ramp.ino
+void setRelay(uint8_t pin, bool on)
+{
+  if (SIM_MODE)
+  {
+    digitalWrite(pin, RELAY_OFF);   // Simulation build: never switch a real relay, just tell the PC
+    simSetRelay(pin, on);
+    return;
+  }
+  digitalWrite(pin, on ? RELAY_ON : RELAY_OFF);
+}
 constexpr uint8_t Current_Sense = 4; //AC Current Sensor
 
 ///Global Variables
@@ -331,6 +354,7 @@ void setup() {
   setRelay(Pump_Relay, false);
 
   Serial.begin(115200);
+  simBegin();   // Simulation mode only (does nothing otherwise)
 
   //Define Preferences
   prefs.begin("settings", false);
@@ -363,6 +387,7 @@ void setup() {
   pinMode(Vext, OUTPUT);
   digitalWrite(Vext, LOW); // LOW powers on the Vext rail for Heltec V3
   delay(100);
+  simWaitForSensors();   // Simulation mode only: wait (max 1 s) for the PC's first sensor reading
   initHeight();
 
   // 3. Initialize OLED Display
@@ -399,6 +424,9 @@ void setup() {
 void loop() {
   // Required background handler for LoRa events in LoRaWan_APP framework
   Radio.IrqProcess();
+
+  // Simulation mode only: read the PC's sensor states, report relays and status (does nothing otherwise)
+  simService();
   
   //Update Current Ramp Height
   updateHeight();

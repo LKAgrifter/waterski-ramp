@@ -32,6 +32,7 @@ VARIANTS = [
     ('ramp_cal',   'Ramp_Control', 'Ramp_Control', {'LADDER_CALIBRATION_MODE = false;': 'LADDER_CALIBRATION_MODE = true;'}),
     ('remote_cal', 'Ramp_Remote',  'Ramp_Remote',  {'LADDER_CALIBRATION_MODE = false;': 'LADDER_CALIBRATION_MODE = true;'}),
     ('ramp_long',  'Ramp_Control', 'Ramp_Control', {'MOTOR_STEP_TIMEOUT_MS = 100000;': 'MOTOR_STEP_TIMEOUT_MS = 200000;'}),
+    ('ramp_sim',   'Ramp_Control', 'Ramp_Control', {'SIM_MODE = false;': 'SIM_MODE = true;'}),
 ]
 
 # Tests: (name, test file, variant, extra -D defines, slow?)
@@ -51,6 +52,9 @@ TESTCASES = [
     ('remote_ladder_cal_mode',   'remote_ladder.cpp',           'remote_cal', ['CALMODE=1'], False),
     ('blank_heights_remote',     'blank_heights.cpp',           'remote',     ['REMOTE'], False),
     ('remote_id',                'remote_id.cpp',               'remote',     [], False),
+    ('sim_mode',                 'sim_mode.cpp',                'ramp_sim',   ['SIM'], False),
+    ('sim_mode_boot_no_sensor',  'sim_mode.cpp',                'ramp_sim',   ['SIM', 'NOSENSOR'], False),
+    ('sim_mode_off',             'sim_mode.cpp',                'ramp',       [], False),
     ('games_ramp',               'games.cpp',                   'ramp',       ['RAMP_SIDE', 'DISPLAY_COST=22', 'VARIANT="\\"ramp\\""'], True),
     ('games_remote',             'games.cpp',                   'remote',     ['DISPLAY_COST=22', 'VARIANT="\\"remote\\""'], True),
 ]
@@ -102,7 +106,7 @@ def sanitizer_flags():
 def warnings_check(srcs):
     """Compile both sketches with warnings on and report any warning that points into a .ino file."""
     problems = []
-    for name in ('ramp', 'remote'):
+    for name in ('ramp', 'remote', 'ramp_sim'):
         r = subprocess.run(['g++', '-std=c++17', '-fsyntax-only', '-Wall', '-Wextra', '-I', STUBS, '-x', 'c++', srcs[name]],
                            capture_output=True, text=True)
         for line in r.stderr.splitlines():
@@ -152,7 +156,7 @@ def main():
         return
 
     failed = 0
-    print('Checking both sketches compile cleanly with warnings on...')
+    print('Checking both sketches (and the ramp simulation build) compile cleanly with warnings on...')
     probs = warnings_check(srcs)
     for p in probs:
         print('  ' + color(p, '31'))
