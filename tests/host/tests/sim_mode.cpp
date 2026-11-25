@@ -78,7 +78,7 @@ int main(){
   pressH(1960); CHECK(runUntilStopped(400000),"4 -> 5 ft comes to rest");
   printf("      ended at %.4f ft, Ramp_Height %.1f\n",pos,state.Ramp_Height);
   CHECK(onSw(5.0) && state.Ramp_Height==5.0f,"picked 5 ft: the virtual ramp is driven up and parks on the 5 ft sensor");
-  run(300); printf("      %s\n",lastT.c_str()); CHECK(tHas("h=50") && tHas("t=50") && tHas("mv=0") && tHas("pg=HOME"),"@T reports 5.0 ft, stopped, back on HOME (the screen timed out during the 2-step move)");
+  run(300); printf("      %s\n",lastT.c_str()); CHECK(tHas("h=50") && tHas("t=50") && tHas("mv=0") && tHas("pg=SET_HEIGHT"),"@T reports 5.0 ft, stopped, still on SET HEIGHT (the screen stays on while the ramp moves)");
   pressH(2610); CHECK(runUntilStopped(400000) && onSw(4.5) && state.Ramp_Height==4.5f,"5 -> 4.5 ft (down) also works");
 
   // Real hardware never touched
