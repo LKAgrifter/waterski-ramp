@@ -297,7 +297,8 @@ struct SystemState
   bool Water_Relay = false; //Water Relay on or off?
   unsigned long Water_RelayStart = 0; //Timer starting at water power on
   int Water_Timeout = 0; //timout in units hours
-  ControlSource Water_Source = SOURCE_LOCAL; //Who turned the water on. A remote's water only lives while that remote keeps refreshing it.
+  ControlSource Water_Source = SOURCE_LOCAL; //SOURCE_REMOTE = a BOAT-mode remote's water: only lives while that remote keeps refreshing it. SOURCE_LOCAL = fixed timer.
+  uint8_t Water_TimerRemoteId = 0; //Fixed timer last set from: 0 = the ramp's own Water page, 1..4 = a TIMER-mode remote (shown on the Water page)
   
   
   unsigned long lastActivityTime = 0; //Timer for display timout

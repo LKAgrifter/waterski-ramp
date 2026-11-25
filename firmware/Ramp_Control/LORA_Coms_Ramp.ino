@@ -54,7 +54,8 @@ constexpr uint8_t FLAG_OVERCURRENT    = 0x04;   // diag.overCurrentFault
 constexpr uint8_t FLAG_LOCAL_OVERRIDE = 0x08;   // Local height override is locking remotes out
 
 // waterCommand values in CommandPacket
-//   -1 = ignore, 0 = off, 1 = on (1 h timer), 2 = keep-alive (refresh a remote-started timer, never starts water)
+//   -1 = ignore, 0 = off, 1 = on (1 h timer), 2 = keep-alive (refresh a remote-started timer, never starts water),
+//    3 = timer tap (TIMER-mode remote): +1 h exactly like a tap on the ramp's Water page (the tap after 12 h = off)
 
 // Telemetry packet sent from Ramp -> all remotes (19 bytes). Must match the remote side exactly.
 struct __attribute__((packed)) TelemetryPacket {
@@ -84,7 +85,7 @@ struct __attribute__((packed)) CommandPacket {
   uint8_t remoteId;          // 1..MAX_REMOTES, unique per remote
   uint8_t seq;               // 0 = heartbeat / manual stream / nothing to ACK, 1..255 = command sequence number
   int8_t targetHeightIndex;  // -1 to ignore, or 0-3 for target height index
-  int8_t waterCommand;       // -1 = ignore, 0 = turn off, 1 = turn on, 2 = keep-alive
+  int8_t waterCommand;       // -1 = ignore, 0 = turn off, 1 = turn on, 2 = keep-alive, 3 = timer tap (+1 h)
   uint8_t remoteControlMode; // 0 = Auto, 1 = manual Up, 2 = manual Down  (level-triggered: must be repeated)
   int8_t bypassCommand;      // -1 = ignore, 0 = bypass off, 1 = bypass on (testing only)
   uint8_t txCounter;         // Increments on every packet this remote sends. The ramp uses gaps to measure packet loss.
@@ -332,6 +333,10 @@ void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr)
         else if (cmd.waterCommand == 2)
         {
           waterKeepAlive();
+        }
+        else if (cmd.waterCommand == 3)
+        {
+          waterTimerTap(cmd.remoteId);   // One-shot: a retry of the same seq is re-ACKed above, never applied twice
         }
 
         if (cmd.bypassCommand == 0 || cmd.bypassCommand == 1)   // TESTING ONLY. Ignored if ALLOW_HEIGHT_SAFETY_BYPASS is false.

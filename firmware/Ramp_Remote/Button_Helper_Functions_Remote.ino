@@ -6,7 +6,9 @@
 //  SET HEIGHT     : the ladder buttons request 4 / 4.5 / 5 / 5.5 ft (the ONLY page where they work)
 //  MANUAL page    : UP / DOWN = hold-to-run motor on the RAMP (streamed over LoRa, 1 s dead-man on the ramp).
 //                   Hold BACK 2 s = toggle the ramp's sensor bypass (testing)
-//  WATER page     : BACK tap = toggle the ramp's water on / off
+//  WATER page     : BOAT mode: BACK tap = toggle the ramp's water on / off
+//                   TIMER mode: BACK tap = +1 h on the ramp's timer (1..12 h, then off), hold BACK 1 s = off
+//                   Hold UP + DOWN together 2 s = switch this remote between BOAT and TIMER mode (saved)
 //  NETWORK / DIAG : UP / DOWN scroll
 //  Every page     : HOLD the MENU button (Enter) to go to the next page.
 //  HOME           : HOLD MENU + BACK together = hidden GAMES page (hold MENU there to leave, back to HOME)
@@ -136,7 +138,27 @@ void processManualPage()
 // ---- Water page ----------------------------------------------------------------------------------
 void processWaterPage()
 {
-    if (wasPressed(WaterButton))
+    // Hold UP + DOWN together 2 s: switch water mode (BOAT <-> TIMER). Two buttons, so it can't happen by accident.
+    if (UpButton.state && DownButton.state && !UpButton.longPressHandled && !DownButton.longPressHandled)
+    {
+        unsigned long since = (UpButton.pressedTime > DownButton.pressedTime) ? UpButton.pressedTime : DownButton.pressedTime;
+        if (millis() - since >= WATER_MODE_HOLD_MS)
+        {
+            UpButton.longPressHandled = true;     // Once per hold
+            DownButton.longPressHandled = true;
+            toggleWaterMode();
+        }
+    }
+
+    if (waterMode == WATER_MODE_TIMER)
+    {
+        // Same as the ramp's own Water page
+        if (wasPressed(WaterButton))
+            requestRemoteWaterTap();              // +1 h each tap, 12 h max, the tap after that turns it off
+        if (isHeld(WaterButton, WATER_OFF_HOLD_MS))
+            requestRemoteWater(false);            // Hold = off right now
+    }
+    else if (wasPressed(WaterButton))
     {
         requestRemoteWaterToggle();
     }

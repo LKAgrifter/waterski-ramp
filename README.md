@@ -58,6 +58,12 @@ Up to **4 remotes** can talk to one ramp.
 3. On the new remote, hold MENU to reach the **NETWORK** page, then **hold BACK for 2 seconds** to change its ID
    (1 -> 2 -> 3 -> 4). Pick one no other remote uses. It's saved, and kept when you reflash.
 4. It shows up on the ramp's NETWORK page.
+5. Pick its **water mode**: on the WATER page, **hold UP + DOWN together for 2 seconds** to switch (the page title
+   shows WATER (BOAT) or WATER (TIMER)). Also saved and kept when you reflash.
+   - **BOAT** (default): for a remote that stays switched on while it's in use. BACK toggles the water; it stays
+     on only while this remote is on and in range, and stops within an hour after that.
+   - **TIMER**: for a remote that sleeps between presses (e.g. a solar shore remote). BACK sets a timer the same
+     way as at the ramp: each tap adds 1 hour (up to 12), the tap after 12 h turns it off, hold BACK 1 s = off.
 
 The radio settings (frequency 915 MHz, SF8, 125 kHz, coding rate 4/6) must match on every unit. They're at the
 top of both main sketches. 915 MHz is for North America; Europe uses 868 MHz.

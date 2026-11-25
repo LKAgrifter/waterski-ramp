@@ -23,6 +23,9 @@ Read this before changing behaviour. Settings are named constants near the top o
   mask and an ACK (`ackRemoteId`, `ackSeq`, `ackResult`) answering the last command.
 - Commands carry a sequence number (`seq`, 0 = nothing to ACK). The ramp ignores repeats of a seq it has already
   handled, so remotes can resend until they see the ACK.
+- `waterCommand`: -1 ignore, 0 off, 1 on (BOAT remote: 1 h timer kept alive), 2 keep-alive (heartbeats from a BOAT
+  remote while the water is on; only refreshes water a BOAT remote started), 3 timer tap (TIMER remote: +1 h,
+  exactly like a tap on the ramp's Water page). A ramp without TIMER support just ignores 3.
 - **Manual drive from a remote is level-triggered:** `remoteControlMode` (1 = up, 2 = down) must be repeated in
   every packet. If the ramp hears nothing for `REMOTE_MANUAL_TIMEOUT_MS` (1 s) it stops (dead-man). Releasing the
   button sends `MANUAL_STOP_REPEATS` "stop" packets so it normally stops within one packet.
@@ -57,6 +60,17 @@ DIAGNOSTICS -> NETWORK -> HOME. The screen times out after 1 minute and always r
 - **Remote ID** (1-4, must be unique per ramp) is a saved setting on each remote: NETWORK page, hold BACK 2 s to
   step it. Stored in flash (`Preferences` key `RemoteId`), so one firmware file serves every remote and
   reflashing keeps it (unless "erase device" is ticked in the flasher).
+- **Water mode** is also a saved setting on each remote (`Preferences` key `WaterMode`): WATER page, hold UP + DOWN
+  together 2 s to switch; the page title shows it.
+  - **BOAT** (default, the original behaviour): BACK toggles. "On" is a 1 h timer that the remote's heartbeats keep
+    refreshing, so the water stops within an hour of the remote being switched off or going out of range. For the
+    remote that's always powered while its boat is in use.
+  - **TIMER**: BACK works like the ramp's own Water page: tap = +1 h (1..12 h), the tap after 12 h = off, hold 1 s =
+    off. It sends no keep-alives, so the water runs for the time set even if the remote sleeps or goes away. For
+    a shore remote on solar + battery that sleeps between presses. Each tap is its own command (applied once per
+    seq); taps made while one is in flight are queued, and dropped if the ramp stops answering.
+  - On the ramp, timer water (from the ramp or a TIMER remote) is a fixed timer that BOAT keep-alives never
+    stretch. The ramp's Water page shows who set it ("Timer by: REMOTE n").
 
 **Position knowledge:** the ramp only *knows* its height while sitting on a sensor. `Ramp_Height` updates only
 when a sensor triggers. `Pos_Side` (-1/0/+1) records which side of that sensor the ramp moved to, so picking the

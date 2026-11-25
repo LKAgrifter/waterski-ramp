@@ -401,9 +401,10 @@ void drawWaterScreen()
     char buf[LIST_LINE_LEN];
 
     display.clear();
-    drawTitle("WATER");
+    bool timerMode = (waterMode == WATER_MODE_TIMER);
+    drawTitle(timerMode ? "WATER (TIMER)" : "WATER (BOAT)");
 
-    bool wantOn  = (cmdPending && requestedWater >= 0) ? (requestedWater == 1) : state.Water_Relay;
+    bool wantOn  = (cmdPending && requestedWater >= 0) ? (requestedWater != 0) : state.Water_Relay;
     bool sending = (cmdPending && requestedWater >= 0);
 
     if (state.Water_Relay)
@@ -415,12 +416,22 @@ void drawWaterScreen()
     else
     {
         drawRow(0, sending ? "WATER: OFF (sending...)" : "WATER: OFF");
+        if (timerMode)
+            drawRow(1, "Tap BACK to start 1 h");
     }
 
     if (!state.Remote_Connected)
         drawRow(2, "NO RAMP LINK!");
+    else if (waterTapsPending() > 0)
+    {
+        snprintf(buf, sizeof(buf), "Adding +%u h...", waterTapsPending());
+        drawRow(2, buf);
+    }
 
-    drawRow(3, wantOn ? "BACK: turn water OFF" : "BACK: turn water ON");
+    if (timerMode)
+        drawRow(3, "BACK: +1h   HOLD: OFF");
+    else
+        drawRow(3, wantOn ? "BACK: turn water OFF" : "BACK: turn water ON");
 
     display.display();
 }
@@ -447,6 +458,8 @@ void buildNetworkLines()
     const char *bw[3] = {"125", "250", "500"};
     addLine("Remote ID: %u", REMOTE_ID);
     addLine("BACK 2s: change ID");
+    addLine("Water mode: %s", waterMode == WATER_MODE_TIMER ? "TIMER" : "BOAT");
+    addLine("(WATER pg: UP+DN 2s)");
     addLine("%.0fMHz SF%d BW%s", RF_FREQUENCY / 1000000.0f, LORA_SPREADING_FACTOR, bw[LORA_BANDWIDTH]);
 }
 
