@@ -72,7 +72,7 @@ ramp. See `docs/DEVELOPMENT.md` for the full behaviour, safety logic and setting
 
 This controls a large motorized structure. The firmware has several layers of protection (calibration lockout,
 per-step motor timeout, sensor fault detection, a manual dead-man on the remote), but **firmware is not a
-substitute for hardware safety**: fit end-of-travel limit switches that cut motor power directly, a fuse or motor
+substitute for hardware safety**: fit a fuse or motor
 thermal cutout, and a way to kill power at the ramp.
 
 ## License
