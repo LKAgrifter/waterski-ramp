@@ -54,7 +54,8 @@ Read this before changing behaviour. Settings are named constants near the top o
 ## Behaviour and safety rules (decisions made on purpose)
 
 **Menus (both units, identical):** hold MENU (0.5 s) to step HOME -> WATER -> SET HEIGHT -> MANUAL ->
-DIAGNOSTICS -> NETWORK -> HOME. The screen times out after 1 minute and always returns to HOME.
+DIAGNOSTICS -> NETWORK -> HOME. The screen times out after 1 minute without a button press (kept on while the ramp is moving; on a remote, while
+it reports moving over a live link) and always returns to HOME.
 - HOME shows status only. A stray height press there shows "Set height: page 3"; a BACK/WATER press shows
   "Water: page 2".
 - **Height buttons only work on SET HEIGHT** (glovebox protection on the remote).
