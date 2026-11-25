@@ -370,6 +370,10 @@ void drawHeightScreen() //Manual adjust page: hold UP / DOWN to drive the ramp's
     // Row 1: how to use it, or what is wrong
     if (!state.Remote_Connected)
         drawRow(1, "NO RAMP LINK!");
+    else if (diag.powerLoss)
+        drawRow(1, "CAL: drive at the ramp");   // The ramp refuses remote manual drive until it has found a sensor
+    else if (state.Height_Safety_Bypass)
+        drawRow(1, "BYPASS: ramp btns only");   // ...and while its sensor bypass is on
     else if (manualBlocked())
         drawRow(1, "Ramp buttons in use!");
     else

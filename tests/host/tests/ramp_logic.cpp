@@ -97,27 +97,42 @@ int main(){
   hold(7,1200); sendCmd(2); run(10);
   CHECK(state.Control_Source==SOURCE_LOCAL,"remote manual refused while local button held"); release(7);
 
-  // 8. Bypass: ignores sensor fault / cal lockout; AUTO disabled
+  // 8. CAL REQUIRED and the bypass: remotes can never drive; at the ramp the bypass ignores the sensor fault; AUTO off.
+  //    (Ramp taken off its sensor first: sitting on a sensor would clear CAL REQUIRED straight away.)
+  uint8_t lastAck=ACK_NONE;
+  auto remoteDrive=[&](){ bool ran=false; for(int i=0;i<1500;i++){ if(i%150==0) sendCmd(1); run(1); if(outv[2]) ran=true; } lastAck=pendingAckResult; sendCmd(0); run(50); return ran; };
+  auto localDrive=[&](){ bool ran=false; pinv[7]=0; for(int i=0;i<1500;i++){ run(1); if(outv[2]) ran=true; } release(7,100); return ran; };   // the ramp's own UP button (MANUAL page)
+  CHECK(currentScreen==SCREEN_HEIGHT,"(on the ramp's MANUAL page)");
   setHeightSafetyBypass(false);
-  diag.powerLoss=true; diag.heightSensorFault=true;
-  run(3000); for(int i=0;i<1500;i++){ if(i%150==0) sendCmd(1); run(1);} 
-  CHECK(!state.Motor_Running,"remote manual blocked by cal/sensor fault when bypass OFF");
+  pinv[34]=1; run(100);                                    // between sensors
+  diag.powerLoss=true; diag.heightSensorFault=true; run(3000);
+  CHECK(!remoteDrive(),"remote manual blocked by cal/sensor fault when bypass OFF");
+  CHECK(lastAck==ACK_LOCKED,"CAL REQUIRED: the ramp tells the remote its manual drive was refused");
+  diag.heightSensorFault=false; run(10);
+  CHECK(diag.powerLoss && !remoteDrive() && lastAck==ACK_LOCKED,"CAL REQUIRED alone (no fault): remote manual still refused");
+  CHECK(localDrive(),"CAL REQUIRED: manual drive at the ramp still works (that's how you recalibrate)");
+  diag.heightSensorFault=true;
   sendCmd(0,-1,-1,1,5); run(10);
   CHECK(!heightSafetyBypassActive(),"a remote can NOT enable the bypass (ramp only)");
   setHeightSafetyBypass(true); run(10);   // as if switched on at the ramp's own Manual page
   CHECK(heightSafetyBypassActive(),"bypass on at the ramp");
-  for(int i=0;i<1500;i++){ if(i%150==0) sendCmd(1); run(1);} 
-  CHECK(state.Motor_Running,"manual runs with bypass ON despite cal + sensor fault");
-  run(1100); CHECK(!state.Motor_Running,"dead-man still works in bypass");
-  uint8_t before=pendingAckResult; sendCmd(0,2,-1,-1,9); CHECK(pendingAckResult==ACK_LOCKED,"remote height cmd refused during bypass");
+  CHECK(!remoteDrive() && lastAck==ACK_LOCKED,"bypass ON + CAL REQUIRED: remote manual refused");
+  diag.powerLoss=false; run(10);
+  CHECK(!remoteDrive() && lastAck==ACK_LOCKED,"bypass ON (calibrated): remote manual still refused - ramp buttons only");
+  diag.powerLoss=true; run(10);
+  CHECK(localDrive(),"bypass ON: manual drive AT THE RAMP runs despite cal + sensor fault");
+  CHECK(!state.Motor_Running,"releasing the ramp's button stops it");
+  sendCmd(0,2,-1,-1,9); CHECK(pendingAckResult==ACK_LOCKED,"remote height cmd refused during bypass");
   sendCmd(0,-1,-1,0,10); CHECK(heightSafetyBypassActive(),"a remote can NOT switch it off either (ramp only)");
   setHeightSafetyBypass(false); CHECK(!heightSafetyBypassActive(),"switched off at the ramp");
 
-  // 9. 30 s timeout still applies in bypass
-  setHeightSafetyBypass(true);
-  for(unsigned long i=0;i<MOTOR_STEP_TIMEOUT_MS+2000;i++){ if(i%150==0) sendCmd(1); run(1);} 
+  // 9. Per-step motor timeout still applies in bypass (driving with the ramp's own button)
+  setHeightSafetyBypass(true); run(1500);
+  pinv[7]=0; run(MOTOR_STEP_TIMEOUT_MS+2000);
   CHECK(!state.Motor_Running && diag.motorTimeoutFault,"step motor timeout trips in bypass");
+  release(7,100);
   setHeightSafetyBypass(false); diag.motorTimeoutFault=false; diag.powerLoss=false; diag.heightSensorFault=false;
+  pinv[34]=0; run(200);                                    // back on the 4 ft sensor
 
   // 10. Water: remote keep-alive only refreshes remote-started water
   sendCmd(0,-1,1,-1,20); CHECK(state.Water_Relay && state.Water_Source==SOURCE_REMOTE && outv[1]==1,"remote water on (1 h)");

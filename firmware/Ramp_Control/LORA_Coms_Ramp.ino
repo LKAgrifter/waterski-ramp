@@ -283,6 +283,10 @@ void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr)
         {
           manualLocked = true;   // Someone is holding a manual button on the ramp itself: they win
         }
+        else if (diag.powerLoss || heightSafetyBypassActive())
+        {
+          manualLocked = true;   // CAL REQUIRED or sensor bypass on: the ramp is only moved from its own buttons.
+        }                        // The remote shows "CAL: drive at the ramp" / "BYPASS: ramp buttons only".
         else
         {
           state.localOverrideActive = false;   // Remote explicitly requesting manual control takes priority over local height lock

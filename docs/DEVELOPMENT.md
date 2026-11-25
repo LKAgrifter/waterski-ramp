@@ -79,8 +79,9 @@ height it just left drives back to it.
 **Startup / calibration (`diag.powerLoss`, shown as CAL REQUIRED):**
 - No sensor active at power-up -> CAL REQUIRED. The ramp may have been moved while off; the saved height is not
   trusted. Also on a power cut mid-move and on first boot after flashing.
-- While CAL REQUIRED, automatic and remote height moves are locked out. Manual drive at the ramp still works; the
-  first sensor reached clears it.
+- While CAL REQUIRED, automatic moves and everything from remotes (height picks and manual drive, even with the
+  bypass on) are locked out; a remote's MANUAL page shows "CAL: drive at the ramp". Manual drive with the ramp's own
+  buttons still works; the first sensor reached clears it.
 - Two sensors active at once -> height sensor fault, automatic moves stop.
 
 **Motor sequencing (`Motor_and_Failsafes_Ramp.ino`):**
@@ -109,8 +110,9 @@ height it just left drives back to it.
 MANUAL page to ignore the height sensors for manual-only testing. Automatic moves are disabled while it's on; the
 motor timeout still applies. It is off after every reboot. **Ramp only:** the remotes have no bypass control
 (remote `ALLOW_HEIGHT_SAFETY_BYPASS = false`) and the ramp ignores bypass requests over the radio
-(`ALLOW_BYPASS_FROM_REMOTE = false`), so a remote with other firmware can't switch it either. Remotes still show
-when it is on.
+(`ALLOW_BYPASS_FROM_REMOTE = false`), so a remote with other firmware can't switch it either. While it is on the
+ramp refuses manual drive from remotes too (their MANUAL page shows "BYPASS: ramp btns only"): with the end limits
+and sensor faults ignored, only someone standing at the ramp drives it.
 
 **Ladder calibration mode:** `LADDER_CALIBRATION_MODE = true` shows the raw reading on HOME (and Serial at 115200)
 and disables height selection. Set back to false afterwards.
