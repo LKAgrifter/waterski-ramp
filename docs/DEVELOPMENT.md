@@ -57,8 +57,8 @@ DIAGNOSTICS -> NETWORK -> HOME. The screen times out after 1 minute and always r
 - UP/DOWN motor buttons only work on MANUAL. A press must *start* on that page (armed buttons).
 - Hidden GAMES page: hold MENU + BACK together on HOME. `Games.ino` is the same file in both sketches.
 - Heights show **blank** when unknown (never located, CAL REQUIRED, or no ramp link on a remote).
-- **Remote ID** (1-4, must be unique per ramp) is a saved setting on each remote: NETWORK page, hold BACK 2 s to
-  step it. Stored in flash (`Preferences` key `RemoteId`), so one firmware file serves every remote and
+- **Remote ID** (1-4, must be unique per ramp) is a saved setting on each remote: NETWORK page, hold UP + DOWN
+  together 2 s to step it. Stored in flash (`Preferences` key `RemoteId`), so one firmware file serves every remote and
   reflashing keeps it (unless "erase device" is ticked in the flasher).
 - **Water mode** is also a saved setting on each remote (`Preferences` key `WaterMode`): WATER page, hold UP + DOWN
   together 2 s to switch; the page title shows it.

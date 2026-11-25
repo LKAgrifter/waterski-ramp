@@ -55,7 +55,7 @@ Up to **4 remotes** can talk to one ramp.
 
 1. Build the remote hardware (same board and buttons as the existing remote).
 2. Flash it with the browser flasher (or the Arduino IDE). Every remote uses the same firmware.
-3. On the new remote, hold MENU to reach the **NETWORK** page, then **hold BACK for 2 seconds** to change its ID
+3. On the new remote, hold MENU to reach the **NETWORK** page, then **hold UP + DOWN together for 2 seconds** to change its ID
    (1 -> 2 -> 3 -> 4). Pick one no other remote uses. It's saved, and kept when you reflash.
 4. It shows up on the ramp's NETWORK page.
 5. Pick its **water mode**: on the WATER page, **hold UP + DOWN together for 2 seconds** to switch (the page title

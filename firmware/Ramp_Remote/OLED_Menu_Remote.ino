@@ -457,7 +457,7 @@ void buildNetworkLines()
 
     const char *bw[3] = {"125", "250", "500"};
     addLine("Remote ID: %u", REMOTE_ID);
-    addLine("BACK 2s: change ID");
+    addLine("UP+DN 2s: change ID");
     addLine("Water mode: %s", waterMode == WATER_MODE_TIMER ? "TIMER" : "BOAT");
     addLine("(WATER pg: UP+DN 2s)");
     addLine("%.0fMHz SF%d BW%s", RF_FREQUENCY / 1000000.0f, LORA_SPREADING_FACTOR, bw[LORA_BANDWIDTH]);

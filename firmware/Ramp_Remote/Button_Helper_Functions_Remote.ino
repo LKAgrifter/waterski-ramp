@@ -9,7 +9,7 @@
 //  WATER page     : BOAT mode: BACK tap = toggle the ramp's water on / off
 //                   TIMER mode: BACK tap = +1 h on the ramp's timer (1..12 h, then off), hold BACK 1 s = off
 //                   Hold UP + DOWN together 2 s = switch this remote between BOAT and TIMER mode (saved)
-//  NETWORK / DIAG : UP / DOWN scroll
+//  NETWORK / DIAG : UP / DOWN scroll. NETWORK: hold UP + DOWN together 2 s = change this remote's ID
 //  Every page     : HOLD the MENU button (Enter) to go to the next page.
 //  HOME           : HOLD MENU + BACK together = hidden GAMES page (hold MENU there to leave, back to HOME)
 
@@ -93,7 +93,7 @@ void processButtons()
         case SCREEN_HEIGHT:      processManualPage(); break;
         case SCREEN_WATER:       processWaterPage();  break;
         case SCREEN_NETWORK:
-            if (isHeld(BackButton, BYPASS_HOLD_MS))   // Hold BACK 2 s: change this remote's ID
+            if (upDownHeld(REMOTE_ID_HOLD_MS))       // Hold UP + DOWN 2 s: change this remote's ID
                 cycleRemoteId();
             processScrollPage();
             break;
@@ -175,6 +175,9 @@ void processWaterPage()
 // ---- Network / Diagnostics pages: scroll ---------------------------------------------------------
 void processScrollPage()
 {
+    if (UpButton.state && DownButton.state)   // Both held = the UP + DOWN hold (NETWORK: change ID), not scrolling
+        return;
+
     if (wasPressedOrRepeat(UpButton) && listScroll > 0)
     {
         listScroll--;

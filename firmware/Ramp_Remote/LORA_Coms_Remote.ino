@@ -522,7 +522,7 @@ void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr)
   Radio.Rx(0);
 }
 
-// NETWORK page, hold BACK: step this remote's ID 1 -> 2 -> 3 -> 4 -> 1 and save it.
+// NETWORK page, hold UP + DOWN: step this remote's ID 1 -> 2 -> 3 -> 4 -> 1 and save it.
 // Any command still waiting for an ACK is dropped (the ACK would come back addressed to the old ID).
 void cycleRemoteId()
 {

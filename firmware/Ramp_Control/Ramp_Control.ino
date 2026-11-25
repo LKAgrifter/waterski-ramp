@@ -63,7 +63,7 @@ constexpr unsigned long REMOTE_MANUAL_TIMEOUT_MS = 1000;
 // HEIGHT_SAFETY_BYPASS_AT_BOOT is true.
 //   ALLOW_HEIGHT_SAFETY_BYPASS    : master switch. false = the feature is dead (menu, remote and boot flag all ignored).
 //   HEIGHT_SAFETY_BYPASS_AT_BOOT  : true = ramp boots with the bypass already ON (bench testing without sensors).
-// It can also be toggled at runtime from the Manual page (hold BACK 2 s) on the ramp OR on the remote.
+// It can also be toggled at runtime from the Manual page (hold UP + DOWN together 2 s) on the ramp OR on the remote.
 // ---------------------------------------------------------------------------
 constexpr bool ALLOW_HEIGHT_SAFETY_BYPASS   = true;
 constexpr bool HEIGHT_SAFETY_BYPASS_AT_BOOT = false;

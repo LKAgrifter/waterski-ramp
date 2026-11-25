@@ -1,4 +1,4 @@
-// Remote ID is a saved setting: NETWORK page, hold BACK 2 s steps 1 -> 2 -> 3 -> 4 -> 1. Survives a power cycle.
+// Remote ID is a saved setting: NETWORK page, hold UP + DOWN 2 s steps 1 -> 2 -> 3 -> 4 -> 1. Survives a power cycle.
 #include "Arduino.h"
 #include "LoRaWan_APP.h"
 static int pinv[64]; static int outv[64]; static int adc=3200;
@@ -12,6 +12,7 @@ void run(int ms){ for(int i=0;i<ms;i++){ g_millis++;
     if(g_millis%250==0){ TelemetryPacket t; memset(&t,0,sizeof(t)); ((uint8_t*)&t)[0]=0xA1; t.rampHeightIndex=0; t.desiredHeightIndex=0; t.txCounter=telCtr++; OnRxDone((uint8_t*)&t,sizeof(t),-60,7); }
     loop(); } }   // a ramp sending telemetry at 4 Hz
 void holdMenu(){ pinv[38]=0; run(800); pinv[38]=1; run(60); }
+void holdBoth(int ms){ pinv[7]=0; pinv[6]=0; run(ms); pinv[7]=1; pinv[6]=1; }
 void goPage(ScreenState s){ if(state.oledSleeping) holdMenu(); for(int i=0;i<8 && currentScreen!=s;i++) holdMenu(); }
 uint8_t sentRemoteId(){   // press a height button on SET HEIGHT and look at the command that goes out
   goPage(SCREEN_SET_HEIGHT); int before=Radio.sent; adc=2610; run(150); adc=3200;
@@ -23,14 +24,16 @@ int main(){
   CHECK(REMOTE_ID==1,"new board starts as remote 1");
   CHECK(sentRemoteId()==1,"its commands go out as remote 1");
   goPage(SCREEN_NETWORK); CHECK(currentScreen==SCREEN_NETWORK,"on NETWORK page");
-  pinv[39]=0; run(1000); pinv[39]=1; run(100); CHECK(REMOTE_ID==1,"a 1 s BACK hold does not change the ID");
-  pinv[39]=0; run(2300); pinv[39]=1; run(100); CHECK(REMOTE_ID==2,"hold BACK 2 s -> remote 2");
-  pinv[39]=0; run(5000); pinv[39]=1; run(100); CHECK(REMOTE_ID==3,"one long hold only steps once (-> 3)");
+  pinv[39]=0; run(3000); pinv[39]=1; run(100); CHECK(REMOTE_ID==1,"holding BACK no longer changes the ID");
+  holdBoth(1000); run(100); CHECK(REMOTE_ID==1,"a 1 s UP + DOWN hold does not change the ID");
+  holdBoth(2300); run(100); CHECK(REMOTE_ID==2,"hold UP + DOWN 2 s -> remote 2");
+  holdBoth(5000); run(100); CHECK(REMOTE_ID==3,"one long hold only steps once (-> 3)");
+  CHECK(listScroll==0,"holding UP + DOWN does not scroll the page");
   CHECK(prefs.getUChar("RemoteId",0)==3,"saved to flash");
   CHECK(sentRemoteId()==3,"commands now go out as remote 3");
-  goPage(SCREEN_NETWORK); for(int k=0;k<2;k++){ pinv[39]=0; run(2300); pinv[39]=1; run(200); }
+  goPage(SCREEN_NETWORK); for(int k=0;k<2;k++){ holdBoth(2300); run(200); }
   CHECK(REMOTE_ID==1,"4 wraps round to 1");
-  pinv[39]=0; run(2300); pinv[39]=1; run(200); CHECK(REMOTE_ID==2,"(set to 2)");
+  holdBoth(2300); run(200); CHECK(REMOTE_ID==2,"(set to 2)");
   // power cycle: same flash, fresh RAM
   REMOTE_ID=1; setup(); run(3000);
   CHECK(REMOTE_ID==2,"after a power cycle it is still remote 2");

@@ -39,6 +39,7 @@ static RadioEvents_t RadioEvents;
 //                                      TIMER mode: tap = +1 h (like the ramp), hold 1 s = off
 //   UP + DOWN together : Manual page = HOLD 2 s to toggle the height-sensor bypass on the RAMP
 //                        Water page  = HOLD 2 s to switch this remote's water mode (BOAT / TIMER)
+//                        Network page = HOLD 2 s to change this remote's ID (1 -> 2 -> 3 -> 4 -> 1)
 //   Ladder buttons     : height select. ONLY works on the SET HEIGHT page (so a bumped button can't move the ramp).
 //
 // PAGES (hold MENU to cycle):  HOME -> WATER -> SET HEIGHT -> MANUAL ADJUST -> DIAGNOSTICS -> NETWORK -> HOME
@@ -50,10 +51,10 @@ constexpr unsigned long HEIGHT_HINT_MS    = 2500;   // How long HOME shows "use 
 unsigned long heightHintUntil = 0;
 unsigned long waterHintUntil = 0;     // Same idea for a BACK/WATER press on HOME
 constexpr unsigned long BYPASS_HOLD_MS    = 2000;   // Hold UP + DOWN this long (Manual page) to toggle the bypass
-                                                    // ...and hold BACK this long (NETWORK page) to change this remote's ID
+constexpr unsigned long REMOTE_ID_HOLD_MS = 2000;   // Hold UP + DOWN this long (NETWORK page) to change this remote's ID
 
 // REMOTE ID: every remote talking to the same ramp needs a different ID (1-4). It's set on the remote itself:
-// NETWORK page, hold BACK 2 s to step 1 -> 2 -> 3 -> 4 -> 1. Saved in flash, so the same firmware file works for
+// NETWORK page, hold UP + DOWN together 2 s to step 1 -> 2 -> 3 -> 4 -> 1. Saved in flash, so the same firmware file works for
 // every remote and reflashing keeps the ID. A brand-new board starts as DEFAULT_REMOTE_ID.
 constexpr uint8_t DEFAULT_REMOTE_ID = 1;
 constexpr uint8_t REMOTE_ID_MAX     = 4;    // Must match MAX_REMOTES on the ramp
