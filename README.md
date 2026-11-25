@@ -15,7 +15,7 @@ firmware/
   Ramp_Remote/    Remote sketch (open Ramp_Remote.ino in the Arduino IDE)
 flasher/          Browser flasher page (published to GitHub Pages by the build)
 hardware/         PCB, wiring and CAD files (to come)
-docs/             DEVELOPMENT.md (how it works), ARDUINO_IDE_SETUP.md (step-by-step guide)
+docs/             USER_GUIDE.md (how to use it), DEVELOPMENT.md (how it works), ARDUINO_IDE_SETUP.md (step-by-step guide)
 tests/host/       PC simulation tests (optional - see tests/host/README.md)
 .github/          Automatic build: tests, compiles both sketches, publishes the flasher
 ```
@@ -69,6 +69,8 @@ The radio settings (frequency 915 MHz, SF8, 125 kHz, coding rate 4/6) must match
 top of both main sketches. 915 MHz is for North America; Europe uses 868 MHz.
 
 ## Using it (quick version)
+
+Full instructions for the ramp controller and the remotes, with screenshots of every page: **[docs/USER_GUIDE.md](docs/USER_GUIDE.md)**.
 
 Hold **MENU** to step through the pages: HOME, WATER, SET HEIGHT, MANUAL, DIAGNOSTICS, NETWORK.
 HOME only shows status. Heights can only be set on the **SET HEIGHT** page, so a bumped button can't move the
