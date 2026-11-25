@@ -5,9 +5,11 @@
 //  HOME page      : status only, nothing does anything
 //  SET HEIGHT     : the ladder buttons request 4 / 4.5 / 5 / 5.5 ft (the ONLY page where they work)
 //  MANUAL page    : UP / DOWN = hold-to-run motor on the RAMP (streamed over LoRa, 1 s dead-man on the ramp).
-//                   Hold BACK 2 s = toggle the ramp's sensor bypass (testing)
-//  WATER page     : BACK tap = toggle the ramp's water on / off
-//  NETWORK / DIAG : UP / DOWN scroll
+//                   Hold UP + DOWN together 2 s = toggle the ramp's sensor bypass (testing; off unless ALLOW_HEIGHT_SAFETY_BYPASS)
+//  WATER page     : BOAT mode: BACK tap = toggle the ramp's water on / off
+//                   TIMER mode: BACK tap = +1 h on the ramp's timer (1..12 h, then off), hold BACK 1 s = off
+//                   Hold UP + DOWN together 2 s = switch this remote between BOAT and TIMER mode (saved)
+//  NETWORK / DIAG : UP / DOWN scroll. NETWORK: hold UP + DOWN together 2 s = change this remote's ID
 //  Every page     : HOLD the MENU button (Enter) to go to the next page.
 //  HOME           : HOLD MENU + BACK together = hidden GAMES page (hold MENU there to leave, back to HOME)
 
@@ -91,7 +93,7 @@ void processButtons()
         case SCREEN_HEIGHT:      processManualPage(); break;
         case SCREEN_WATER:       processWaterPage();  break;
         case SCREEN_NETWORK:
-            if (isHeld(BackButton, BYPASS_HOLD_MS))   // Hold BACK 2 s: change this remote's ID
+            if (upDownHeld(REMOTE_ID_HOLD_MS))       // Hold UP + DOWN 2 s: change this remote's ID
                 cycleRemoteId();
             processScrollPage();
             break;
@@ -125,18 +127,45 @@ void processManualPage()
     else if (down) setRemoteManual(MODE_MANUAL_DOWN);
     else           setRemoteManual(MODE_AUTO);
 
-    // TESTING ONLY: hold BACK to toggle the height sensor bypass on the ramp
-    if (ALLOW_HEIGHT_SAFETY_BYPASS && isHeld(BackButton, BYPASS_HOLD_MS))
+    // TESTING ONLY: hold UP + DOWN together to toggle the height sensor bypass on the ramp. (Both down = this remote
+    // sends "stop" and both buttons are disarmed above, so the hold itself never drives.)
+    if (ALLOW_HEIGHT_SAFETY_BYPASS && upDownHeld(BYPASS_HOLD_MS))
     {
         requestRemoteBypass(!state.Height_Safety_Bypass);
     }
+}
+
+// True once when UP and DOWN have both been held for `ms` (counted from the later of the two presses). Two buttons
+// at once can't happen by a bump. A wake-up press never counts (the screen wake marks both presses as handled).
+bool upDownHeld(unsigned long ms)
+{
+    if (!(UpButton.state && DownButton.state) || UpButton.longPressHandled || DownButton.longPressHandled)
+        return false;
+    unsigned long since = (UpButton.pressedTime > DownButton.pressedTime) ? UpButton.pressedTime : DownButton.pressedTime;
+    if (millis() - since < ms)
+        return false;
+    UpButton.longPressHandled = true;     // Once per hold
+    DownButton.longPressHandled = true;
+    return true;
 }
 
 
 // ---- Water page ----------------------------------------------------------------------------------
 void processWaterPage()
 {
-    if (wasPressed(WaterButton))
+    // Hold UP + DOWN together 2 s: switch water mode (BOAT <-> TIMER). Two buttons, so it can't happen by accident.
+    if (upDownHeld(WATER_MODE_HOLD_MS))
+        toggleWaterMode();
+
+    if (waterMode == WATER_MODE_TIMER)
+    {
+        // Same as the ramp's own Water page
+        if (wasPressed(WaterButton))
+            requestRemoteWaterTap();              // +1 h each tap, 12 h max, the tap after that turns it off
+        if (isHeld(WaterButton, WATER_OFF_HOLD_MS))
+            requestRemoteWater(false);            // Hold = off right now
+    }
+    else if (wasPressed(WaterButton))
     {
         requestRemoteWaterToggle();
     }
@@ -146,6 +175,9 @@ void processWaterPage()
 // ---- Network / Diagnostics pages: scroll ---------------------------------------------------------
 void processScrollPage()
 {
+    if (UpButton.state && DownButton.state)   // Both held = the UP + DOWN hold (NETWORK: change ID), not scrolling
+        return;
+
     if (wasPressedOrRepeat(UpButton) && listScroll > 0)
     {
         listScroll--;

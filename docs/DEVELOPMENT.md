@@ -23,6 +23,9 @@ Read this before changing behaviour. Settings are named constants near the top o
   mask and an ACK (`ackRemoteId`, `ackSeq`, `ackResult`) answering the last command.
 - Commands carry a sequence number (`seq`, 0 = nothing to ACK). The ramp ignores repeats of a seq it has already
   handled, so remotes can resend until they see the ACK.
+- `waterCommand`: -1 ignore, 0 off, 1 on (BOAT remote: 1 h timer kept alive), 2 keep-alive (heartbeats from a BOAT
+  remote while the water is on; only refreshes water a BOAT remote started), 3 timer tap (TIMER remote: +1 h,
+  exactly like a tap on the ramp's Water page). A ramp without TIMER support just ignores 3.
 - **Manual drive from a remote is level-triggered:** `remoteControlMode` (1 = up, 2 = down) must be repeated in
   every packet. If the ramp hears nothing for `REMOTE_MANUAL_TIMEOUT_MS` (1 s) it stops (dead-man). Releasing the
   button sends `MANUAL_STOP_REPEATS` "stop" packets so it normally stops within one packet.
@@ -54,9 +57,20 @@ DIAGNOSTICS -> NETWORK -> HOME. The screen times out after 1 minute and always r
 - UP/DOWN motor buttons only work on MANUAL. A press must *start* on that page (armed buttons).
 - Hidden GAMES page: hold MENU + BACK together on HOME. `Games.ino` is the same file in both sketches.
 - Heights show **blank** when unknown (never located, CAL REQUIRED, or no ramp link on a remote).
-- **Remote ID** (1-4, must be unique per ramp) is a saved setting on each remote: NETWORK page, hold BACK 2 s to
-  step it. Stored in flash (`Preferences` key `RemoteId`), so one firmware file serves every remote and
+- **Remote ID** (1-4, must be unique per ramp) is a saved setting on each remote: NETWORK page, hold UP + DOWN
+  together 2 s to step it. Stored in flash (`Preferences` key `RemoteId`), so one firmware file serves every remote and
   reflashing keeps it (unless "erase device" is ticked in the flasher).
+- **Water mode** is also a saved setting on each remote (`Preferences` key `WaterMode`): WATER page, hold UP + DOWN
+  together 2 s to switch; the page title shows it.
+  - **BOAT** (default, the original behaviour): BACK toggles. "On" is a 1 h timer that the remote's heartbeats keep
+    refreshing, so the water stops within an hour of the remote being switched off or going out of range. For the
+    remote that's always powered while its boat is in use.
+  - **TIMER**: BACK works like the ramp's own Water page: tap = +1 h (1..12 h), the tap after 12 h = off, hold 1 s =
+    off. It sends no keep-alives, so the water runs for the time set even if the remote sleeps or goes away. For
+    a shore remote on solar + battery that sleeps between presses. Each tap is its own command (applied once per
+    seq); taps made while one is in flight are queued, and dropped if the ramp stops answering.
+  - On the ramp, timer water (from the ramp or a TIMER remote) is a fixed timer that BOAT keep-alives never
+    stretch. The ramp's Water page shows who set it ("Timer by: REMOTE n").
 
 **Position knowledge:** the ramp only *knows* its height while sitting on a sensor. `Ramp_Height` updates only
 when a sensor triggers. `Pos_Side` (-1/0/+1) records which side of that sensor the ramp moved to, so picking the
@@ -65,8 +79,9 @@ height it just left drives back to it.
 **Startup / calibration (`diag.powerLoss`, shown as CAL REQUIRED):**
 - No sensor active at power-up -> CAL REQUIRED. The ramp may have been moved while off; the saved height is not
   trusted. Also on a power cut mid-move and on first boot after flashing.
-- While CAL REQUIRED, automatic and remote height moves are locked out. Manual drive at the ramp still works; the
-  first sensor reached clears it.
+- While CAL REQUIRED, automatic moves and everything from remotes (height picks and manual drive, even with the
+  bypass on) are locked out; a remote's MANUAL page shows "CAL: drive at the ramp". Manual drive with the ramp's own
+  buttons still works; the first sensor reached clears it.
 - Two sensors active at once -> height sensor fault, automatic moves stop.
 
 **Motor sequencing (`Motor_and_Failsafes_Ramp.ino`):**
@@ -91,9 +106,13 @@ height it just left drives back to it.
   sensor (a dead sensor would otherwise make it bounce between neighbours).
 - Manual drive soft limits use the end sensors directly (`limits[0]` / `limits[3]` active).
 
-**Testing bypass:** `ALLOW_HEIGHT_SAFETY_BYPASS` (master switch, false for real use) lets you hold BACK 2 s on the
+**Testing bypass:** `ALLOW_HEIGHT_SAFETY_BYPASS` (master switch, false for real use) lets you hold UP + DOWN together 2 s on the
 MANUAL page to ignore the height sensors for manual-only testing. Automatic moves are disabled while it's on; the
-motor timeout still applies.
+motor timeout still applies. It is off after every reboot. **Ramp only:** the remotes have no bypass control
+(remote `ALLOW_HEIGHT_SAFETY_BYPASS = false`) and the ramp ignores bypass requests over the radio
+(`ALLOW_BYPASS_FROM_REMOTE = false`), so a remote with other firmware can't switch it either. While it is on the
+ramp refuses manual drive from remotes too (their MANUAL page shows "BYPASS: ramp btns only"): with the end limits
+and sensor faults ignored, only someone standing at the ramp drives it.
 
 **Ladder calibration mode:** `LADDER_CALIBRATION_MODE = true` shows the raw reading on HOME (and Serial at 115200)
 and disables height selection. Set back to false afterwards.

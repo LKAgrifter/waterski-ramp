@@ -35,8 +35,11 @@ static RadioEvents_t RadioEvents;
 //   UpButton    (AUX1) : Manual page = MOTOR UP (hold)     | list pages = scroll up
 //   DownButton  (AUX2) : Manual page = MOTOR DOWN (hold)   | list pages = scroll down
 //   EnterButton (AUX3) : MENU button. HOLD to go to the next page.
-//   BackButton  (AUX4) : Water page  = WATER button (tap = toggle on/off)
-//                        Manual page = HOLD 2 s to toggle the height-sensor bypass on the RAMP
+//   BackButton  (AUX4) : Water page  = WATER button. BOAT mode: tap = toggle on/off.
+//                                      TIMER mode: tap = +1 h (like the ramp), hold 1 s = off
+//   UP + DOWN together : Manual page = HOLD 2 s to toggle the height-sensor bypass on the RAMP (only if ALLOW_HEIGHT_SAFETY_BYPASS)
+//                        Water page  = HOLD 2 s to switch this remote's water mode (BOAT / TIMER)
+//                        Network page = HOLD 2 s to change this remote's ID (1 -> 2 -> 3 -> 4 -> 1)
 //   Ladder buttons     : height select. ONLY works on the SET HEIGHT page (so a bumped button can't move the ramp).
 //
 // PAGES (hold MENU to cycle):  HOME -> WATER -> SET HEIGHT -> MANUAL ADJUST -> DIAGNOSTICS -> NETWORK -> HOME
@@ -47,20 +50,39 @@ constexpr unsigned long MENU_HOLD_MS      = 700;    // Hold MENU this long to ch
 constexpr unsigned long HEIGHT_HINT_MS    = 2500;   // How long HOME shows "use SET HEIGHT page" after a stray height press
 unsigned long heightHintUntil = 0;
 unsigned long waterHintUntil = 0;     // Same idea for a BACK/WATER press on HOME
-constexpr unsigned long BYPASS_HOLD_MS    = 2000;   // Hold BACK this long (Manual page) to toggle the bypass
-                                                    // ...or (NETWORK page) to change this remote's ID
+constexpr unsigned long BYPASS_HOLD_MS    = 2000;   // Hold UP + DOWN this long (Manual page) to toggle the bypass
+constexpr unsigned long REMOTE_ID_HOLD_MS = 2000;   // Hold UP + DOWN this long (NETWORK page) to change this remote's ID
 
 // REMOTE ID: every remote talking to the same ramp needs a different ID (1-4). It's set on the remote itself:
-// NETWORK page, hold BACK 2 s to step 1 -> 2 -> 3 -> 4 -> 1. Saved in flash, so the same firmware file works for
+// NETWORK page, hold UP + DOWN together 2 s to step 1 -> 2 -> 3 -> 4 -> 1. Saved in flash, so the same firmware file works for
 // every remote and reflashing keeps the ID. A brand-new board starts as DEFAULT_REMOTE_ID.
 constexpr uint8_t DEFAULT_REMOTE_ID = 1;
 constexpr uint8_t REMOTE_ID_MAX     = 4;    // Must match MAX_REMOTES on the ramp
 uint8_t REMOTE_ID = DEFAULT_REMOTE_ID;
+
+// WATER MODE: also a saved setting on each remote. WATER page, hold UP + DOWN together 2 s to switch.
+//   BOAT  (default): BACK toggles the water. While the water is on, this remote's heartbeats keep the ramp's 1 h
+//                    timer topped up, so the water stops within an hour of this remote switching off or losing the
+//                    link. For a remote that stays powered while it's in use (in the boat).
+//   TIMER          : BACK sets a fixed timer exactly like the ramp's own Water page: each tap +1 h (1..12 h), the
+//                    tap after 12 h turns it off, hold BACK 1 s = off now. No keep-alives, so the remote can be
+//                    switched off / asleep and the water still runs for the time set. For a shore remote that
+//                    sleeps between presses (solar + battery).
+enum WaterMode : uint8_t
+{
+  WATER_MODE_BOAT  = 0,
+  WATER_MODE_TIMER = 1
+};
+WaterMode waterMode = WATER_MODE_BOAT;
+constexpr unsigned long WATER_MODE_HOLD_MS = 2000;  // Hold UP + DOWN this long (Water page) to switch water mode
+constexpr unsigned long WATER_OFF_HOLD_MS  = 1000;  // TIMER mode: hold BACK this long (Water page) = water off (same as the ramp)
+constexpr uint8_t       WATER_TAP_QUEUE_MAX = 12;   // TIMER mode: taps waiting to be sent (12 taps = the whole 1..12 h range)
 constexpr unsigned long SCREEN_REFRESH_MS = 80;     // Max OLED redraw rate (~12 Hz)
 
-// TESTING ONLY. Set false to make this remote unable to ask the ramp for the height-sensor bypass.
-// (The ramp has its own ALLOW_HEIGHT_SAFETY_BYPASS master switch as well.)
-constexpr bool ALLOW_HEIGHT_SAFETY_BYPASS = true;
+// TESTING ONLY. false (normal): the sensor bypass is only available on the ramp itself, so this remote has no bypass
+// control (it still SHOWS when the ramp's bypass is on). true = Manual page, hold UP + DOWN 2 s asks the ramp to
+// toggle it - which the ramp only obeys if its own ALLOW_BYPASS_FROM_REMOTE is true too.
+constexpr bool ALLOW_HEIGHT_SAFETY_BYPASS = false;
 
 //Buttons
 constexpr uint8_t Ladder_pin    = 5; // Resistor Ladder Buttons (For Heigth Selection)
@@ -129,6 +151,7 @@ LadderState ladder;
 
 // Forward declarations (custom types in the parameters, so the IDE's auto-prototypes can't be trusted)
 void cycleRemoteId();
+void toggleWaterMode();
 LadderButton readLadderFromRaw(int adc);
 const char *ladderName(LadderButton b);
 
@@ -246,6 +269,9 @@ void setup() {
   REMOTE_ID = prefs.getUChar("RemoteId", DEFAULT_REMOTE_ID);
   if (REMOTE_ID < 1 || REMOTE_ID > REMOTE_ID_MAX)
     REMOTE_ID = DEFAULT_REMOTE_ID;
+
+  // This remote's water mode (set on the WATER page). Anything unexpected falls back to BOAT, the original behaviour.
+  waterMode = (prefs.getUChar("WaterMode", WATER_MODE_BOAT) == WATER_MODE_TIMER) ? WATER_MODE_TIMER : WATER_MODE_BOAT;
   
   //Define pin modes
   pinMode(UpButton.pin, INPUT_PULLUP);

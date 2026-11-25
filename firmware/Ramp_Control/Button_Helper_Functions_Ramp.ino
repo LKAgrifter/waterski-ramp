@@ -4,7 +4,7 @@
 //
 //  HOME page      : status only, nothing does anything
 //  SET HEIGHT     : the ladder buttons select 4 / 4.5 / 5 / 5.5 ft (the ONLY page where they work)
-//  MANUAL page    : UP / DOWN = hold-to-run motor.  Hold BACK 2 s = toggle sensor bypass (testing)
+//  MANUAL page    : UP / DOWN = hold-to-run motor.  Hold UP + DOWN together 2 s = toggle sensor bypass (testing)
 //  WATER page     : BACK tap = +1 h (cycles 1..12 h, then off), BACK hold = off
 //  NETWORK / DIAG : UP / DOWN scroll
 //  Every page     : HOLD the MENU button (Enter) to go to the next page.
@@ -122,11 +122,26 @@ void processManualPage()
         cancelManualControl();   // Button released: back to AUTO (Desired = Ramp, so the motor stops)
     }
 
-    // TESTING ONLY: hold BACK to toggle the height sensor bypass
-    if (ALLOW_HEIGHT_SAFETY_BYPASS && isHeld(BackButton, BYPASS_HOLD_MS))
+    // TESTING ONLY: hold UP + DOWN together to toggle the height sensor bypass. (Both down = the motor is stopped
+    // and both buttons disarmed above, so the hold itself never drives.)
+    if (ALLOW_HEIGHT_SAFETY_BYPASS && upDownHeld(BYPASS_HOLD_MS))
     {
         setHeightSafetyBypass(!state.Height_Safety_Bypass);
     }
+}
+
+// True once when UP and DOWN have both been held for `ms` (counted from the later of the two presses). Two buttons
+// at once can't happen by a bump. A wake-up press never counts (the screen wake marks both presses as handled).
+bool upDownHeld(unsigned long ms)
+{
+    if (!(UpButton.state && DownButton.state) || UpButton.longPressHandled || DownButton.longPressHandled)
+        return false;
+    unsigned long since = (UpButton.pressedTime > DownButton.pressedTime) ? UpButton.pressedTime : DownButton.pressedTime;
+    if (millis() - since < ms)
+        return false;
+    UpButton.longPressHandled = true;     // Once per hold
+    DownButton.longPressHandled = true;
+    return true;
 }
 
 

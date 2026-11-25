@@ -395,7 +395,7 @@ void drawHeightScreen() //Manual adjust page: hold UP / DOWN to drive the motor
         if (heightSafetyBypassActive())
             drawRow(3, "!SENSORS BYPASSED!");
         else
-            drawRow(3, "Hold BACK: sensor bypass");
+            drawRow(3, "Hold UP+DN 2s: bypass");
     }
 
     display.display();
@@ -414,7 +414,12 @@ void drawWaterScreen()
         drawRow(0, waterPausedForMotor() ? "WATER: ON (paused-moving)" : "WATER: ON");
         snprintf(buf, sizeof(buf), "Left: %uh %02um  (set %dh)", mins / 60, mins % 60, state.Water_Timeout);
         drawRow(1, buf);
-        snprintf(buf, sizeof(buf), "Started by: %s", state.Water_Source == SOURCE_REMOTE ? "REMOTE" : "RAMP");
+        if (state.Water_Source == SOURCE_REMOTE)
+            snprintf(buf, sizeof(buf), "Started by: REMOTE");
+        else if (state.Water_TimerRemoteId != 0)
+            snprintf(buf, sizeof(buf), "Timer by: REMOTE %u", state.Water_TimerRemoteId);
+        else
+            snprintf(buf, sizeof(buf), "Started by: RAMP");
         drawRow(2, buf);
     }
     else

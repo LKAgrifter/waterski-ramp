@@ -29,7 +29,8 @@ Read `docs/DEVELOPMENT.md` first: hardware facts, safety rules and the reasons b
 - `.github/workflows/firmware.yml` compiles both sketches with arduino-cli and publishes `flasher/` (ESP Web Tools)
   to GitHub Pages (https://lkagrifter.github.io/waterski-ramp/). It also compile-checks the `SIM_MODE` build. Pin
   `CORE_VERSION` / `LIBRARY_VERSION` to the versions the owner uses (CI currently gets the latest).
-- Remote ID is a saved setting (NETWORK page, hold BACK 2 s), not a code constant.
+- Remote ID is a saved setting (NETWORK page, hold UP + DOWN 2 s), not a code constant. So is each remote's water mode
+  (BOAT = keep-alive water / TIMER = taps like the ramp; WATER page, hold UP + DOWN 2 s).
 
 ## Related repo
 The PC simulator / 3D / AR showcase lives in the separate `waterski-ramp-sim` repo, normally cloned next to this

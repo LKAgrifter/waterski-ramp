@@ -370,6 +370,10 @@ void drawHeightScreen() //Manual adjust page: hold UP / DOWN to drive the ramp's
     // Row 1: how to use it, or what is wrong
     if (!state.Remote_Connected)
         drawRow(1, "NO RAMP LINK!");
+    else if (diag.powerLoss)
+        drawRow(1, "CAL: drive at the ramp");   // The ramp refuses remote manual drive until it has found a sensor
+    else if (state.Height_Safety_Bypass)
+        drawRow(1, "BYPASS: ramp btns only");   // ...and while its sensor bypass is on
     else if (manualBlocked())
         drawRow(1, "Ramp buttons in use!");
     else
@@ -390,7 +394,7 @@ void drawHeightScreen() //Manual adjust page: hold UP / DOWN to drive the ramp's
         if (state.Height_Safety_Bypass)
             drawRow(3, "!SENSORS BYPASSED!");
         else
-            drawRow(3, "Hold BACK: sensor bypass");
+            drawRow(3, "Hold UP+DN 2s: bypass");
     }
 
     display.display();
@@ -401,9 +405,10 @@ void drawWaterScreen()
     char buf[LIST_LINE_LEN];
 
     display.clear();
-    drawTitle("WATER");
+    bool timerMode = (waterMode == WATER_MODE_TIMER);
+    drawTitle(timerMode ? "WATER (TIMER)" : "WATER (BOAT)");
 
-    bool wantOn  = (cmdPending && requestedWater >= 0) ? (requestedWater == 1) : state.Water_Relay;
+    bool wantOn  = (cmdPending && requestedWater >= 0) ? (requestedWater != 0) : state.Water_Relay;
     bool sending = (cmdPending && requestedWater >= 0);
 
     if (state.Water_Relay)
@@ -415,12 +420,22 @@ void drawWaterScreen()
     else
     {
         drawRow(0, sending ? "WATER: OFF (sending...)" : "WATER: OFF");
+        if (timerMode)
+            drawRow(1, "Tap BACK to start 1 h");
     }
 
     if (!state.Remote_Connected)
         drawRow(2, "NO RAMP LINK!");
+    else if (waterTapsPending() > 0)
+    {
+        snprintf(buf, sizeof(buf), "Adding +%u h...", waterTapsPending());
+        drawRow(2, buf);
+    }
 
-    drawRow(3, wantOn ? "BACK: turn water OFF" : "BACK: turn water ON");
+    if (timerMode)
+        drawRow(3, "BACK: +1h   HOLD: OFF");
+    else
+        drawRow(3, wantOn ? "BACK: turn water OFF" : "BACK: turn water ON");
 
     display.display();
 }
@@ -446,7 +461,9 @@ void buildNetworkLines()
 
     const char *bw[3] = {"125", "250", "500"};
     addLine("Remote ID: %u", REMOTE_ID);
-    addLine("BACK 2s: change ID");
+    addLine("UP+DN 2s: change ID");
+    addLine("Water mode: %s", waterMode == WATER_MODE_TIMER ? "TIMER" : "BOAT");
+    addLine("(WATER pg: UP+DN 2s)");
     addLine("%.0fMHz SF%d BW%s", RF_FREQUENCY / 1000000.0f, LORA_SPREADING_FACTOR, bw[LORA_BANDWIDTH]);
 }
 

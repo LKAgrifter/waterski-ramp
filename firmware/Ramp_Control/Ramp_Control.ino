@@ -36,7 +36,7 @@ static RadioEvents_t RadioEvents;
 //   DownButton  (AUX2) : Manual page = MOTOR DOWN (hold)   | list pages = scroll down
 //   EnterButton (AUX3) : MENU button. HOLD to go to the next page.
 //   BackButton  (AUX4) : Water page  = WATER button (tap = +1 h, hold = off)
-//                        Manual page = HOLD 2 s to toggle the height-sensor bypass
+//   UP + DOWN together : Manual page = HOLD 2 s to toggle the height-sensor bypass
 //   Ladder buttons     : height select. ONLY works on the SET HEIGHT page (so a bumped button can't move the ramp).
 //
 // PAGES (hold MENU to cycle):  HOME -> WATER -> SET HEIGHT -> MANUAL ADJUST -> DIAGNOSTICS -> NETWORK -> HOME
@@ -48,7 +48,7 @@ constexpr unsigned long HEIGHT_HINT_MS    = 2500;   // How long HOME shows "use 
 unsigned long heightHintUntil = 0;
 unsigned long waterHintUntil = 0;     // Same idea for a BACK/WATER press on HOME
 constexpr unsigned long WATER_OFF_HOLD_MS = 1000;   // Hold WATER this long (Water page) to turn the water off
-constexpr unsigned long BYPASS_HOLD_MS    = 2000;   // Hold BACK this long (Manual page) to toggle the bypass
+constexpr unsigned long BYPASS_HOLD_MS    = 2000;   // Hold UP + DOWN this long (Manual page) to toggle the bypass
 constexpr unsigned long SCREEN_REFRESH_MS = 80;     // Max OLED redraw rate (~12 Hz). Redrawing every loop() starves the radio/motor code.
 
 // A remote that asks for manual drive must keep sending packets. If nothing arrives for this long
@@ -57,16 +57,19 @@ constexpr unsigned long REMOTE_MANUAL_TIMEOUT_MS = 1000;
 
 // ---------------------------------------------------------------------------
 // *** TESTING ONLY: HEIGHT SENSOR SAFETY BYPASS ***
-// While the bypass is ON the ramp ignores: the height-sensor fault, the "calibration required" lockout
-// and the top/bottom soft limits. AUTO mode is disabled (height buttons are ignored); only manual drive works.
-// The 30 s motor run timeout still applies. The bypass is never saved - it is OFF after every reboot unless
+// While the bypass is ON the ramp ignores: the height-sensor fault and the top/bottom soft limits. AUTO mode is
+// disabled (height buttons are ignored); only manual drive AT THE RAMP works - remotes can't drive while it's on.
+// The per-step motor timeout (MOTOR_STEP_TIMEOUT_MS) still applies. The bypass is never saved - it is OFF after every reboot unless
 // HEIGHT_SAFETY_BYPASS_AT_BOOT is true.
 //   ALLOW_HEIGHT_SAFETY_BYPASS    : master switch. false = the feature is dead (menu, remote and boot flag all ignored).
 //   HEIGHT_SAFETY_BYPASS_AT_BOOT  : true = ramp boots with the bypass already ON (bench testing without sensors).
-// It can also be toggled at runtime from the Manual page (hold BACK 2 s) on the ramp OR on the remote.
+//   ALLOW_BYPASS_FROM_REMOTE      : false = only the ramp's own Manual page can turn it on/off; bypass requests that
+//                                   arrive over the radio are ignored (whatever firmware the remote runs).
+// Toggle it at runtime on the ramp's Manual page: hold UP + DOWN together 2 s.
 // ---------------------------------------------------------------------------
 constexpr bool ALLOW_HEIGHT_SAFETY_BYPASS   = true;
 constexpr bool HEIGHT_SAFETY_BYPASS_AT_BOOT = false;
+constexpr bool ALLOW_BYPASS_FROM_REMOTE     = false;
 
 // ---------------------------------------------------------------------------
 // *** SIMULATION MODE (for the PC simulator - leave false for real use) ***
@@ -297,7 +300,8 @@ struct SystemState
   bool Water_Relay = false; //Water Relay on or off?
   unsigned long Water_RelayStart = 0; //Timer starting at water power on
   int Water_Timeout = 0; //timout in units hours
-  ControlSource Water_Source = SOURCE_LOCAL; //Who turned the water on. A remote's water only lives while that remote keeps refreshing it.
+  ControlSource Water_Source = SOURCE_LOCAL; //SOURCE_REMOTE = a BOAT-mode remote's water: only lives while that remote keeps refreshing it. SOURCE_LOCAL = fixed timer.
+  uint8_t Water_TimerRemoteId = 0; //Fixed timer last set from: 0 = the ramp's own Water page, 1..4 = a TIMER-mode remote (shown on the Water page)
   
   
   unsigned long lastActivityTime = 0; //Timer for display timout

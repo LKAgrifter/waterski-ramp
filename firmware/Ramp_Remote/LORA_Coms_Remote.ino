@@ -10,10 +10,11 @@
 //
 // Three kinds of packet go out:
 //   * COMMAND   (seq 1..255): height / water / bypass request. Retried until the ramp ACKs it.
+//                             TIMER-mode water taps (+1 h each) go one per command; extra taps wait in a queue.
 //   * MANUAL    (seq 0)     : while a motor button is held, a packet with mode 1/2 goes out every time the
 //                             channel is quiet (~4-5 per second). The ramp stops the motor if none arrives for 1 s.
 //                             When the button is released a couple of mode-0 packets tell it to stop right away.
-//   * HEARTBEAT (seq 0)     : every few seconds; also carries the water keep-alive.
+//   * HEARTBEAT (seq 0)     : every few seconds; also carries the water keep-alive (BOAT water mode only).
 // Every packet carries remoteControlMode, so a command sent while a motor button is held doesn't cancel the drive.
 // ===========================================================================
 
@@ -88,7 +89,7 @@ struct __attribute__((packed)) CommandPacket {
   uint8_t remoteId;          // 1..MAX_REMOTES, unique per remote
   uint8_t seq;               // 0 = heartbeat / manual stream / nothing to ACK, 1..255 = command sequence number
   int8_t targetHeightIndex;  // -1 to ignore, or 0-3 for target height index
-  int8_t waterCommand;       // -1 = ignore, 0 = turn off, 1 = turn on, 2 = keep-alive
+  int8_t waterCommand;       // -1 = ignore, 0 = turn off, 1 = turn on, 2 = keep-alive, 3 = timer tap (+1 h)
   uint8_t remoteControlMode; // 0 = Auto, 1 = manual Up, 2 = manual Down  (level-triggered: repeated while held)
   int8_t bypassCommand;      // -1 = ignore, 0 = bypass off, 1 = bypass on (testing only)
   uint8_t txCounter;         // Increments on every packet this remote sends. The ramp uses gaps to measure loss.
@@ -139,7 +140,8 @@ unsigned long lastSendTime = 0;
 uint8_t cmdSeq = 0;                     // Sequence number of the current command
 bool cmdPending = false;                // A command is waiting for the ramp to confirm
 int8_t requestedHeightIndex = -1;       // -1 = no height in this command
-int8_t requestedWater = -1;             // -1 = none, 0 = off, 1 = on
+int8_t requestedWater = -1;             // -1 = none, 0 = off, 1 = on, 3 = timer tap (+1 h)
+uint8_t waterTapsQueued = 0;            // TIMER mode: taps still to send after the current water command
 int8_t requestedBypass = -1;            // -1 = none, 0 = off, 1 = on
 unsigned long requestDeadline = 0;
 bool waitingAck = false;                // A command is on the air and we're waiting for its ACK
@@ -187,14 +189,35 @@ void requestRemoteHeight(float height)
 void requestRemoteWater(bool on)
 {
   requestedWater = on ? 1 : 0;
+  waterTapsQueued = 0;   // Off (or on) replaces any timer taps still waiting
   startCommand();
 }
 
-// Water button: flip whatever the water is (or is about to be)
+// BOAT mode water button: flip whatever the water is (or is about to be)
 void requestRemoteWaterToggle()
 {
-  bool current = (cmdPending && requestedWater >= 0) ? (requestedWater == 1) : state.Water_Relay;
+  bool current = (cmdPending && requestedWater >= 0) ? (requestedWater != 0) : state.Water_Relay;
   requestRemoteWater(!current);
+}
+
+// TIMER mode water button: one tap = +1 h on the ramp's timer, the same as a tap on the ramp's own Water page.
+// Each tap is its own command (the ramp applies a sequence number once), so taps made while one is still on its
+// way are queued and sent one after another - none are lost and none are applied twice.
+void requestRemoteWaterTap()
+{
+  if (cmdPending && requestedWater >= 0)
+  {
+    if (waterTapsQueued < WATER_TAP_QUEUE_MAX) waterTapsQueued++;
+    return;
+  }
+  requestedWater = 3;
+  startCommand();
+}
+
+// TIMER mode: how many +1 h taps are still on their way to the ramp (for the Water page)
+uint8_t waterTapsPending()
+{
+  return (cmdPending && requestedWater == 3) ? (uint8_t)(1 + waterTapsQueued) : 0;
 }
 
 // TESTING ONLY: ask the ramp to turn its height sensor bypass on / off
@@ -332,6 +355,14 @@ void handleLoraLink()
         commandLocked = true;
         commandFailedTime = now;
       }
+
+      // TIMER mode: send the next queued +1 h tap
+      if (waterTapsQueued > 0)
+      {
+        waterTapsQueued--;
+        requestedWater = 3;
+        startCommand();
+      }
     }
 
     // Only take the ramp's target when we aren't waiting on our own height request
@@ -369,6 +400,7 @@ void handleLoraLink()
     requestedHeightIndex = -1;
     requestedWater = -1;
     requestedBypass = -1;
+    waterTapsQueued = 0;   // The ramp isn't answering: don't fire old taps at it later
     loraStats.cmdFails++;
     commandFailed = true;
     commandLocked = false;
@@ -404,10 +436,10 @@ void handleLoraLink()
         bypassCmd = requestedBypass;
         seq = cmdSeq;
       }
-      else if (state.Water_Relay)
+      else if (state.Water_Relay && waterMode == WATER_MODE_BOAT)
       {
-        waterCmd = 2;   // Keep-alive: refreshes the ramp's 1 h water timer if a remote started the water. Never starts water.
-      }
+        waterCmd = 2;   // Keep-alive: refreshes the ramp's 1 h water timer if a BOAT remote started the water. Never starts water.
+      }                 // (TIMER mode sends none: its water runs on the fixed timer, like water set at the ramp.)
 
       // The current manual mode rides along on EVERY packet (0 = not driving)
       sendCommand(heightIdx, waterCmd, bypassCmd, (uint8_t)state.Control_Mode, seq);
@@ -490,11 +522,19 @@ void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr)
   Radio.Rx(0);
 }
 
-// NETWORK page, hold BACK: step this remote's ID 1 -> 2 -> 3 -> 4 -> 1 and save it.
+// NETWORK page, hold UP + DOWN: step this remote's ID 1 -> 2 -> 3 -> 4 -> 1 and save it.
 // Any command still waiting for an ACK is dropped (the ACK would come back addressed to the old ID).
 void cycleRemoteId()
 {
   REMOTE_ID = (REMOTE_ID >= REMOTE_ID_MAX) ? 1 : (uint8_t)(REMOTE_ID + 1);
   prefs.putUChar("RemoteId", REMOTE_ID);
   cmdPending = false;
+  waterTapsQueued = 0;
+}
+
+// WATER page, hold UP + DOWN 2 s: switch this remote between BOAT and TIMER water mode and save it.
+void toggleWaterMode()
+{
+  waterMode = (waterMode == WATER_MODE_BOAT) ? WATER_MODE_TIMER : WATER_MODE_BOAT;
+  prefs.putUChar("WaterMode", (uint8_t)waterMode);
 }

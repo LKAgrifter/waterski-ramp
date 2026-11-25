@@ -421,9 +421,12 @@ void updateMotorControl()  //This function handles ALL processing relating to mo
 
   //General System Error Flags
 
-  //In the event of power-loss during motion, do not allow motor to run automatically.
-  //(Only a person at the ramp may drive manually to recalibrate. A remote can't, unless the bypass is on.)
-  if(!bypass && diag.powerLoss && (state.Control_Mode == MODE_AUTO || state.Control_Source == SOURCE_REMOTE))
+  //CAL REQUIRED (power loss during motion / no sensor at power-up): no automatic moves, and no remote manual drive -
+  //only a person at the ramp may drive it to a sensor to recalibrate. Applies even with the bypass on.
+  //Sensor bypass on: remote manual drive is never allowed either (end limits and sensor faults are being ignored, so
+  //only someone standing at the ramp drives it). The radio handler already refuses these; this is the backstop.
+  if((diag.powerLoss && (state.Control_Mode == MODE_AUTO || state.Control_Source == SOURCE_REMOTE)) ||
+     (bypass && state.Control_Mode == MODE_MANUAL && state.Control_Source == SOURCE_REMOTE))
   {
     motorStop();
     return;
