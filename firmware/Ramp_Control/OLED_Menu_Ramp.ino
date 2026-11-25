@@ -395,7 +395,7 @@ void drawHeightScreen() //Manual adjust page: hold UP / DOWN to drive the motor
         if (heightSafetyBypassActive())
             drawRow(3, "!SENSORS BYPASSED!");
         else
-            drawRow(3, "Hold BACK: sensor bypass");
+            drawRow(3, "Hold UP+DN 2s: bypass");
     }
 
     display.display();

@@ -105,7 +105,7 @@ height it just left drives back to it.
   sensor (a dead sensor would otherwise make it bounce between neighbours).
 - Manual drive soft limits use the end sensors directly (`limits[0]` / `limits[3]` active).
 
-**Testing bypass:** `ALLOW_HEIGHT_SAFETY_BYPASS` (master switch, false for real use) lets you hold BACK 2 s on the
+**Testing bypass:** `ALLOW_HEIGHT_SAFETY_BYPASS` (master switch, false for real use) lets you hold UP + DOWN together 2 s on the
 MANUAL page to ignore the height sensors for manual-only testing. Automatic moves are disabled while it's on; the
 motor timeout still applies.
 

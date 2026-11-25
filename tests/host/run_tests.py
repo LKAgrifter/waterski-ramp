@@ -54,6 +54,8 @@ TESTCASES = [
     ('remote_id',                'remote_id.cpp',               'remote',     [], False),
     ('remote_water_mode',        'remote_water_mode.cpp',       'remote',     [], False),
     ('ramp_water_timer',         'ramp_water_timer.cpp',        'ramp',       [], False),
+    ('bypass_buttons_ramp',      'bypass_buttons.cpp',          'ramp',       [], False),
+    ('bypass_buttons_remote',    'bypass_buttons.cpp',          'remote',     ['REMOTE'], False),
     ('sim_mode',                 'sim_mode.cpp',                'ramp_sim',   ['SIM'], False),
     ('sim_mode_boot_no_sensor',  'sim_mode.cpp',                'ramp_sim',   ['SIM', 'NOSENSOR'], False),
     ('sim_mode_off',             'sim_mode.cpp',                'ramp',       [], False),

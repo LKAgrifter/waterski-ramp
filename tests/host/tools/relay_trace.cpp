@@ -16,7 +16,7 @@ int main(){
   setup(); run(6000,"boot");
   printf("boot: CAL=%d bypass=%d\n",diag.powerLoss,heightSafetyBypassActive());
   while(currentScreen!=SCREEN_HEIGHT) holdMenu();
-  pinv[39]=0; run(2300,"hold BACK"); pinv[39]=1; run(100,"bypass");
+  pinv[7]=0; pinv[6]=0; run(2300,"hold UP+DOWN"); pinv[7]=1; pinv[6]=1; run(100,"bypass");
   printf("on MANUAL page, bypass=%d\n",heightSafetyBypassActive());
   auto remote=[&](uint8_t mode,int ms,const char* tag){ static uint8_t seq=50,ctr=0; for(int k=0;k<ms;k++){ if(k%150==0){ CommandPacket c; c.remoteId=1; c.seq=seq; c.targetHeightIndex=-1; c.waterCommand=2; c.remoteControlMode=mode; c.bypassCommand=-1; c.txCounter=ctr++; OnRxDone((uint8_t*)&c,sizeof(c),-60,7);} g_millis++; loop(); logEdges(tag);} };
   printf("--- LOCAL: hold UP 3 s, release, hold DOWN 3 s\n");

@@ -37,7 +37,8 @@ static RadioEvents_t RadioEvents;
 //   EnterButton (AUX3) : MENU button. HOLD to go to the next page.
 //   BackButton  (AUX4) : Water page  = WATER button. BOAT mode: tap = toggle on/off.
 //                                      TIMER mode: tap = +1 h (like the ramp), hold 1 s = off
-//                        Manual page = HOLD 2 s to toggle the height-sensor bypass on the RAMP
+//   UP + DOWN together : Manual page = HOLD 2 s to toggle the height-sensor bypass on the RAMP
+//                        Water page  = HOLD 2 s to switch this remote's water mode (BOAT / TIMER)
 //   Ladder buttons     : height select. ONLY works on the SET HEIGHT page (so a bumped button can't move the ramp).
 //
 // PAGES (hold MENU to cycle):  HOME -> WATER -> SET HEIGHT -> MANUAL ADJUST -> DIAGNOSTICS -> NETWORK -> HOME
@@ -48,8 +49,8 @@ constexpr unsigned long MENU_HOLD_MS      = 700;    // Hold MENU this long to ch
 constexpr unsigned long HEIGHT_HINT_MS    = 2500;   // How long HOME shows "use SET HEIGHT page" after a stray height press
 unsigned long heightHintUntil = 0;
 unsigned long waterHintUntil = 0;     // Same idea for a BACK/WATER press on HOME
-constexpr unsigned long BYPASS_HOLD_MS    = 2000;   // Hold BACK this long (Manual page) to toggle the bypass
-                                                    // ...or (NETWORK page) to change this remote's ID
+constexpr unsigned long BYPASS_HOLD_MS    = 2000;   // Hold UP + DOWN this long (Manual page) to toggle the bypass
+                                                    // ...and hold BACK this long (NETWORK page) to change this remote's ID
 
 // REMOTE ID: every remote talking to the same ramp needs a different ID (1-4). It's set on the remote itself:
 // NETWORK page, hold BACK 2 s to step 1 -> 2 -> 3 -> 4 -> 1. Saved in flash, so the same firmware file works for

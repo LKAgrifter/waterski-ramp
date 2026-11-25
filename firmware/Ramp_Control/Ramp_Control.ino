@@ -36,7 +36,7 @@ static RadioEvents_t RadioEvents;
 //   DownButton  (AUX2) : Manual page = MOTOR DOWN (hold)   | list pages = scroll down
 //   EnterButton (AUX3) : MENU button. HOLD to go to the next page.
 //   BackButton  (AUX4) : Water page  = WATER button (tap = +1 h, hold = off)
-//                        Manual page = HOLD 2 s to toggle the height-sensor bypass
+//   UP + DOWN together : Manual page = HOLD 2 s to toggle the height-sensor bypass
 //   Ladder buttons     : height select. ONLY works on the SET HEIGHT page (so a bumped button can't move the ramp).
 //
 // PAGES (hold MENU to cycle):  HOME -> WATER -> SET HEIGHT -> MANUAL ADJUST -> DIAGNOSTICS -> NETWORK -> HOME
@@ -48,7 +48,7 @@ constexpr unsigned long HEIGHT_HINT_MS    = 2500;   // How long HOME shows "use 
 unsigned long heightHintUntil = 0;
 unsigned long waterHintUntil = 0;     // Same idea for a BACK/WATER press on HOME
 constexpr unsigned long WATER_OFF_HOLD_MS = 1000;   // Hold WATER this long (Water page) to turn the water off
-constexpr unsigned long BYPASS_HOLD_MS    = 2000;   // Hold BACK this long (Manual page) to toggle the bypass
+constexpr unsigned long BYPASS_HOLD_MS    = 2000;   // Hold UP + DOWN this long (Manual page) to toggle the bypass
 constexpr unsigned long SCREEN_REFRESH_MS = 80;     // Max OLED redraw rate (~12 Hz). Redrawing every loop() starves the radio/motor code.
 
 // A remote that asks for manual drive must keep sending packets. If nothing arrives for this long

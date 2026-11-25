@@ -5,7 +5,7 @@
 //  HOME page      : status only, nothing does anything
 //  SET HEIGHT     : the ladder buttons request 4 / 4.5 / 5 / 5.5 ft (the ONLY page where they work)
 //  MANUAL page    : UP / DOWN = hold-to-run motor on the RAMP (streamed over LoRa, 1 s dead-man on the ramp).
-//                   Hold BACK 2 s = toggle the ramp's sensor bypass (testing)
+//                   Hold UP + DOWN together 2 s = toggle the ramp's sensor bypass (testing)
 //  WATER page     : BOAT mode: BACK tap = toggle the ramp's water on / off
 //                   TIMER mode: BACK tap = +1 h on the ramp's timer (1..12 h, then off), hold BACK 1 s = off
 //                   Hold UP + DOWN together 2 s = switch this remote between BOAT and TIMER mode (saved)
@@ -127,11 +127,26 @@ void processManualPage()
     else if (down) setRemoteManual(MODE_MANUAL_DOWN);
     else           setRemoteManual(MODE_AUTO);
 
-    // TESTING ONLY: hold BACK to toggle the height sensor bypass on the ramp
-    if (ALLOW_HEIGHT_SAFETY_BYPASS && isHeld(BackButton, BYPASS_HOLD_MS))
+    // TESTING ONLY: hold UP + DOWN together to toggle the height sensor bypass on the ramp. (Both down = this remote
+    // sends "stop" and both buttons are disarmed above, so the hold itself never drives.)
+    if (ALLOW_HEIGHT_SAFETY_BYPASS && upDownHeld(BYPASS_HOLD_MS))
     {
         requestRemoteBypass(!state.Height_Safety_Bypass);
     }
+}
+
+// True once when UP and DOWN have both been held for `ms` (counted from the later of the two presses). Two buttons
+// at once can't happen by a bump. A wake-up press never counts (the screen wake marks both presses as handled).
+bool upDownHeld(unsigned long ms)
+{
+    if (!(UpButton.state && DownButton.state) || UpButton.longPressHandled || DownButton.longPressHandled)
+        return false;
+    unsigned long since = (UpButton.pressedTime > DownButton.pressedTime) ? UpButton.pressedTime : DownButton.pressedTime;
+    if (millis() - since < ms)
+        return false;
+    UpButton.longPressHandled = true;     // Once per hold
+    DownButton.longPressHandled = true;
+    return true;
 }
 
 
@@ -139,16 +154,8 @@ void processManualPage()
 void processWaterPage()
 {
     // Hold UP + DOWN together 2 s: switch water mode (BOAT <-> TIMER). Two buttons, so it can't happen by accident.
-    if (UpButton.state && DownButton.state && !UpButton.longPressHandled && !DownButton.longPressHandled)
-    {
-        unsigned long since = (UpButton.pressedTime > DownButton.pressedTime) ? UpButton.pressedTime : DownButton.pressedTime;
-        if (millis() - since >= WATER_MODE_HOLD_MS)
-        {
-            UpButton.longPressHandled = true;     // Once per hold
-            DownButton.longPressHandled = true;
-            toggleWaterMode();
-        }
-    }
+    if (upDownHeld(WATER_MODE_HOLD_MS))
+        toggleWaterMode();
 
     if (waterMode == WATER_MODE_TIMER)
     {
