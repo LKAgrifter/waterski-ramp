@@ -204,6 +204,7 @@ struct SystemState
 
   bool Height_Safety_Bypass = false; //TESTING ONLY: ramp has its height sensor safeties bypassed (mirrored from the ramp)
   bool Manual_Active = false;        //Ramp reports it is in manual drive (mirrored from the ramp)
+  bool Remote_Manual_Off = false;    //Ramp doesn't allow manual drive from remotes at all (mirrored from the ramp)
 
   bool packetRecieved = false;
 

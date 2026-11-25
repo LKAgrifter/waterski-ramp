@@ -425,8 +425,9 @@ void updateMotorControl()  //This function handles ALL processing relating to mo
   //only a person at the ramp may drive it to a sensor to recalibrate. Applies even with the bypass on.
   //Sensor bypass on: remote manual drive is never allowed either (end limits and sensor faults are being ignored, so
   //only someone standing at the ramp drives it). The radio handler already refuses these; this is the backstop.
+  //ALLOW_REMOTE_MANUAL false: remote manual drive is never allowed.
   if((diag.powerLoss && (state.Control_Mode == MODE_AUTO || state.Control_Source == SOURCE_REMOTE)) ||
-     (bypass && state.Control_Mode == MODE_MANUAL && state.Control_Source == SOURCE_REMOTE))
+     ((bypass || !ALLOW_REMOTE_MANUAL) && state.Control_Mode == MODE_MANUAL && state.Control_Source == SOURCE_REMOTE))
   {
     motorStop();
     return;

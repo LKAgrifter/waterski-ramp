@@ -52,6 +52,7 @@ constexpr uint8_t FLAG_BYPASS         = 0x01;   // Height sensor safety bypass i
 constexpr uint8_t FLAG_MANUAL         = 0x02;   // Ramp is in manual drive
 constexpr uint8_t FLAG_OVERCURRENT    = 0x04;   // diag.overCurrentFault
 constexpr uint8_t FLAG_LOCAL_OVERRIDE = 0x08;   // Local height override is locking remotes out
+constexpr uint8_t FLAG_REMOTE_MANUAL_OFF = 0x10; // ALLOW_REMOTE_MANUAL is false: remotes can't drive by hand
 
 // waterCommand values in CommandPacket
 //   -1 = ignore, 0 = off, 1 = on (1 h timer), 2 = keep-alive (refresh a remote-started timer, never starts water),
@@ -165,7 +166,8 @@ void handleLoraBroadcast()
   packet.flags = (heightSafetyBypassActive() ? FLAG_BYPASS : 0) |
                  (state.Control_Mode == MODE_MANUAL ? FLAG_MANUAL : 0) |
                  (diag.overCurrentFault ? FLAG_OVERCURRENT : 0) |
-                 (state.localOverrideActive ? FLAG_LOCAL_OVERRIDE : 0);
+                 (state.localOverrideActive ? FLAG_LOCAL_OVERRIDE : 0) |
+                 (ALLOW_REMOTE_MANUAL ? 0 : FLAG_REMOTE_MANUAL_OFF);
   packet.waterRemainMin = waterRemainingMinutes();
   packet.txCounter = telemetryCounter++;
 
@@ -283,10 +285,10 @@ void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr)
         {
           manualLocked = true;   // Someone is holding a manual button on the ramp itself: they win
         }
-        else if (diag.powerLoss || heightSafetyBypassActive())
+        else if (!ALLOW_REMOTE_MANUAL || diag.powerLoss || heightSafetyBypassActive())
         {
-          manualLocked = true;   // CAL REQUIRED or sensor bypass on: the ramp is only moved from its own buttons.
-        }                        // The remote shows "CAL: drive at the ramp" / "BYPASS: ramp buttons only".
+          manualLocked = true;   // Remote manual switched off, CAL REQUIRED or sensor bypass on: the ramp is only moved
+        }                        // from its own buttons. The remote's MANUAL page says why.
         else
         {
           state.localOverrideActive = false;   // Remote explicitly requesting manual control takes priority over local height lock

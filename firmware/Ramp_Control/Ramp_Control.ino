@@ -55,6 +55,13 @@ constexpr unsigned long SCREEN_REFRESH_MS = 80;     // Max OLED redraw rate (~12
 // the ramp drops back to AUTO (which stops the motor, because Desired_Height tracks Ramp_Height in manual).
 constexpr unsigned long REMOTE_MANUAL_TIMEOUT_MS = 1000;
 
+// REMOTE MANUAL DRIVE. true = remotes can drive the motor by hand from their MANUAL page (hold UP / DOWN), except
+// while CAL REQUIRED or the sensor bypass is on. false = manual drive ONLY with the ramp's own buttons: every remote
+// manual request is refused (whatever firmware the remote runs) and the remotes' MANUAL page says
+// "Manual: at the ramp only" (they learn it from the telemetry). Height picks from remotes are not affected.
+// Only the ramp needs reflashing to change it.
+constexpr bool ALLOW_REMOTE_MANUAL = true;
+
 // ---------------------------------------------------------------------------
 // *** TESTING ONLY: HEIGHT SENSOR SAFETY BYPASS ***
 // While the bypass is ON the ramp ignores: the height-sensor fault and the top/bottom soft limits. AUTO mode is

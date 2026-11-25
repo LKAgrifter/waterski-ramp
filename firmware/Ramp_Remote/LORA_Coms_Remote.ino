@@ -60,6 +60,7 @@ constexpr uint8_t FLAG_BYPASS         = 0x01;   // Height sensor safety bypass i
 constexpr uint8_t FLAG_MANUAL         = 0x02;   // Ramp is in manual drive
 constexpr uint8_t FLAG_OVERCURRENT    = 0x04;   // diag.overCurrentFault
 constexpr uint8_t FLAG_LOCAL_OVERRIDE = 0x08;   // Local height override is locking remotes out
+constexpr uint8_t FLAG_REMOTE_MANUAL_OFF = 0x10; // The ramp doesn't allow manual drive from remotes (its ALLOW_REMOTE_MANUAL)
 
 // Telemetry packet sent from Ramp -> all remotes (19 bytes). Must match the ramp side exactly.
 struct __attribute__((packed)) TelemetryPacket {
@@ -318,6 +319,7 @@ void handleLoraLink()
     state.Height_Safety_Bypass = (lastTelemetry.flags & FLAG_BYPASS) != 0;
     state.Manual_Active      = (lastTelemetry.flags & FLAG_MANUAL) != 0;
     state.localOverrideActive = (lastTelemetry.flags & FLAG_LOCAL_OVERRIDE) != 0;
+    state.Remote_Manual_Off  = (lastTelemetry.flags & FLAG_REMOTE_MANUAL_OFF) != 0;
     diag.overCurrentFault    = (lastTelemetry.flags & FLAG_OVERCURRENT) != 0;
     diag.powerLoss           = lastTelemetry.powerLoss != 0;
     diag.heightSensorFault   = lastTelemetry.heightSensorFault != 0;

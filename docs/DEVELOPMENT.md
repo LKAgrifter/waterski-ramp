@@ -26,6 +26,10 @@ Read this before changing behaviour. Settings are named constants near the top o
 - `waterCommand`: -1 ignore, 0 off, 1 on (BOAT remote: 1 h timer kept alive), 2 keep-alive (heartbeats from a BOAT
   remote while the water is on; only refreshes water a BOAT remote started), 3 timer tap (TIMER remote: +1 h,
   exactly like a tap on the ramp's Water page). A ramp without TIMER support just ignores 3.
+- **Remote manual drive can be switched off** with `ALLOW_REMOTE_MANUAL` (ramp main tab, default true). False = the
+  ramp refuses every remote manual request and sets `FLAG_REMOTE_MANUAL_OFF` (0x10) in the telemetry `flags`; the
+  remotes' MANUAL page then says "Manual: at the ramp only". Only the ramp needs reflashing. Remote manual is
+  also refused while CAL REQUIRED and while the sensor bypass is on.
 - **Manual drive from a remote is level-triggered:** `remoteControlMode` (1 = up, 2 = down) must be repeated in
   every packet. If the ramp hears nothing for `REMOTE_MANUAL_TIMEOUT_MS` (1 s) it stops (dead-man). Releasing the
   button sends `MANUAL_STOP_REPEATS` "stop" packets so it normally stops within one packet.
