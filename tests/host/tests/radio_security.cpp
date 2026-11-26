@@ -72,8 +72,23 @@ void bindChecks(){
   CHECK(rsBindSource==1 && !strcmp(rsKeyCode,CODE_PHRASE) && !memcmp(rsKey,KEY_PHRASE,32),"phrase written by the web flasher is found and used");
   char want[24]; snprintf(want,sizeof want,"Bind: %s",CODE_PHRASE);
   CHECK(!strcmp(bindText(),want),"NETWORK page shows its code");
+  CHECK(rsFlashRemoteId==3 && rsFlashWaterMode==1 && rsFlashId==0x12345678u,"the remote ID / type / flash number in the block are read too");
+#ifdef REMOTE
+  // Remote settings picked in the flasher: saved on the first boot after that flash, then the menus can change them
+  applyFlashedSettings();
+  CHECK(prefs.getUChar("RemoteId",0)==3 && prefs.getUChar("WaterMode",9)==WATER_MODE_TIMER,"first boot after the web flash: remote ID 3 and TIMER mode saved");
+  prefs.putUChar("RemoteId",1); prefs.putUChar("WaterMode",WATER_MODE_BOAT);    // changed on the NETWORK / WATER pages
+  radioSecurityBegin(); applyFlashedSettings();
+  CHECK(prefs.getUChar("RemoteId",0)==1 && prefs.getUChar("WaterMode",9)==WATER_MODE_BOAT,"next boot: the menu changes are kept (the flash's settings only apply once)");
+  { uint8_t keep[sizeof BIND_BLOCK_RAMP]; memcpy(keep,BIND_BLOCK_RAMP,sizeof keep); memcpy(part+8192-4096,keep,sizeof keep); }
+  radioSecurityBegin(); applyFlashedSettings();
+  CHECK(prefs.getUChar("RemoteId",0)==1 && prefs.getUChar("WaterMode",9)==WATER_MODE_BOAT,"a new flash with no remote settings (the ramp's kind) leaves them alone");
+  memcpy(part+8192-4096,BIND_BLOCK,sizeof BIND_BLOCK);
+  radioSecurityBegin(); applyFlashedSettings();
+  CHECK(prefs.getUChar("RemoteId",0)==3 && prefs.getUChar("WaterMode",9)==WATER_MODE_TIMER,"flashed again with settings: applied again");
+#endif
   part[8192-4096+12]^=0x20; radioSecurityBegin();
-  CHECK(rsBindSource==0 && !strcmp(bindText(),"Bind: NONE (open)") && !memcmp(rsKey,KEY_UNBOUND,32),"damaged block (CRC wrong): unbound");
+  CHECK(rsBindSource==0 && !strcmp(bindText(),"Bind: NONE (open)") && !memcmp(rsKey,KEY_UNBOUND,32) && rsFlashId==0,"damaged block (CRC wrong): unbound, no remote settings");
   g_testPartitionData=nullptr; radioSecurityBegin();
   CHECK(rsBindSource==0,"no block: unbound");
 

@@ -205,9 +205,7 @@ Hold MENU 0.5 s on any page to go to the next one.
 - "Bad key" counts packets from a board with a different phrase.
 - "Old firmware heard" means a board still runs older, unencrypted firmware. Reflash it: old and new firmware can't talk to each other.
 
-**Each remote needs its own ID (1 to 4).** On the remote's NETWORK page, hold UP + DOWN for 2 seconds to step 1 → 2 → 3 → 4 → 1. Pick one no other remote uses; the ramp's NETWORK page lists R1 to R4.
-
-**Set each remote's water mode.** On its WATER page, hold UP + DOWN for 2 seconds: BOAT for the boat remote, TIMER for a sleeping shore remote. The ID and water mode are saved and survive reflashing.
+**Each remote needs its own ID (1 to 4)** and a type: Boat (BOAT water mode, for the boat remote) or Shore (TIMER water mode, for a sleeping shore remote). Pick both in the web flasher before flashing a remote; it takes them on its first start after flashing. To change them later on the remote: NETWORK page, hold UP + DOWN for 2 seconds to step the ID 1 → 2 → 3 → 4 → 1; WATER page, hold UP + DOWN for 2 seconds to switch BOAT / TIMER. Pick an ID no other remote uses; the ramp's NETWORK page lists R1 to R4. Both are saved and kept when the remote is updated from the Arduino IDE; a web flash sets them to what you picked in the flasher.
 
 **Testing bypass (bench testing only).** On the ramp's MANUAL page, hold UP + DOWN for 2 seconds. While it's on, manual driving ignores the end sensors and sensor faults, so watch the ramp. Height picks and all remote driving are refused, the motor timeout still applies, and it switches off at every restart. It can't be turned on from a remote.
 

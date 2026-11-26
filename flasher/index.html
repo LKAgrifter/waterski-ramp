@@ -44,6 +44,9 @@
     .code { font: 600 1.15rem ui-monospace, Consolas, monospace; color: var(--text); letter-spacing: .08em; }
     .err { color: #c0392b; }
     .needs-phrase { color: var(--muted); font-style: italic; }
+    .opts { display: grid; grid-template-columns: auto 1fr; gap: 8px 10px; align-items: center; margin: 0 0 16px; }
+    .opts label { font-weight: 600; white-space: nowrap; }
+    .opts select { min-width: 0; width: 100%; font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); }
     esp-web-install-button[hidden], [data-needs-phrase][hidden] { display: none !important; }
     a { color: var(--accent); }
   </style>
@@ -70,7 +73,20 @@
   <div class="grid">
     <div class="card">
       <h2>Remote</h2>
-      <p>For a handheld remote. One file works for every remote: set each remote's ID on the remote afterwards.</p>
+      <p>For a handheld remote. Pick its ID and type here (you can still change them on the remote later).</p>
+      <div class="opts">
+        <label for="remoteId">Remote ID</label>
+        <select id="remoteId">
+          <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
+        </select>
+        <label for="remoteType">Type</label>
+        <select id="remoteType">
+          <option value="0">Boat (always on)</option>
+          <option value="1">Shore (sleeps, timer)</option>
+        </select>
+      </div>
+      <p style="font-size:.92rem"><strong>Boat:</strong> the water stays on while this remote is on and connected.
+        <strong>Shore:</strong> for a remote that sleeps between uses: each water tap adds an hour, like the ramp's own button.</p>
       <p class="needs-phrase" data-needs-phrase>Type a bind phrase above first.</p>
       <esp-web-install-button id="install-remote" data-manifest="manifest-remote.json" hidden>
         <button slot="activate">Install remote firmware</button>
@@ -102,8 +118,9 @@
     <li>Plug the Heltec board into this computer with a USB-C <em>data</em> cable.</li>
     <li>Click the install button for the board you're flashing, pick the board's port, and confirm.</li>
     <li>Wait for it to finish (about a minute), then unplug it.</li>
-    <li><strong>New remote:</strong> on the remote, hold MENU to reach the NETWORK page, then hold UP and DOWN
-      together for 2 seconds to change its ID. Each remote talking to the same ramp needs a different ID (1&ndash;4).</li>
+    <li><strong>Remotes:</strong> each remote talking to the same ramp needs a different ID (1&ndash;4): pick it, and
+      the type (Boat or Shore), before flashing. The remote takes them on its first start after flashing. You can
+      change them later on the remote: NETWORK page (ID) and WATER page (type), hold UP and DOWN together for 2 seconds.</li>
     <li>Flash the ramp and all remotes from the <strong>same version</strong> and the <strong>same bind phrase</strong>.
       Boards on older (unencrypted) firmware can't talk to this version: their NETWORK page counts them as "Old firmware heard".</li>
     <li>Check every board's NETWORK page shows the same <code>Bind:</code> code. A board that hears another with a
@@ -126,6 +143,9 @@
   (function () {
     const input = document.getElementById('phrase'), msg = document.getElementById('phraseMsg'), code = document.getElementById('code');
     const buttons = ['remote', 'ramp'].map(k => document.getElementById('install-' + k));
+    const remoteId = document.getElementById('remoteId'), remoteType = document.getElementById('remoteType');
+    // Settings written into each board's block: the remote's ID and type, nothing for the ramp
+    const optsFor = i => i === 0 ? { remoteId: +remoteId.value, waterMode: +remoteType.value } : {};
     const hints = document.querySelectorAll('[data-needs-phrase]');
     const defaultMsg = msg.textContent;
     let timer = 0, run = 0, urls = [];
@@ -142,7 +162,7 @@
       if (bad) { msg.textContent = phrase ? bad : defaultMsg; if (phrase) msg.classList.add('err'); code.textContent = '----'; return; }
       try {
         const c = await RampBind.keyCode(phrase);
-        const made = await Promise.all(buttons.map(b => RampBind.manifestWithPhrase(b.dataset.manifest, phrase)));
+        const made = await Promise.all(buttons.map((b, i) => RampBind.manifestWithPhrase(b.dataset.manifest, phrase, optsFor(i))));
         if (mine !== run) { made.forEach(u => URL.revokeObjectURL(u)); return; }
         urls.forEach(u => URL.revokeObjectURL(u));
         urls = made;
@@ -158,6 +178,8 @@
     }
 
     input.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(update, 250); });
+    remoteId.addEventListener('change', update);
+    remoteType.addEventListener('change', update);
     update();
   })();
 

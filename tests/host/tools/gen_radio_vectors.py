@@ -54,9 +54,10 @@ out.append('};')
 
 # The web flasher's bind block (magic, length, phrase, CRC-32 of length + phrase)
 phrase = b'correct horse battery staple'
-body = bytes([len(phrase)]) + phrase
-block = b'WSRBIND1' + body + struct.pack('<I', zlib.crc32(body))
-out.append('const uint8_t BIND_BLOCK[%d] = %s;' % (len(block), c_bytes(block)))
+for name, rid, mode, fid in (('BIND_BLOCK', 3, 1, 0x12345678), ('BIND_BLOCK_RAMP', 0, 0xFF, 0x0BADF00D)):
+    body = bytes([len(phrase)]) + phrase + bytes([rid, mode]) + struct.pack('<I', fid)
+    block = b'WSRBIND1' + body + struct.pack('<I', zlib.crc32(body))
+    out.append('const uint8_t %s[%d] = %s;   // remote ID %d, water mode %d, flash number 0x%08x' % (name, len(block), c_bytes(block), rid, mode, fid))
 
 open(sys.argv[1], 'w', encoding='utf-8', newline='\n').write('\n'.join(out) + '\n')
 print('wrote', sys.argv[1])

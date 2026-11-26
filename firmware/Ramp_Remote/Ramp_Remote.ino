@@ -29,6 +29,9 @@ constexpr uint8_t RS_HEADER_LEN    = 5;      // Sender byte + 4-byte frame count
 constexpr uint8_t RS_TAG_LEN       = 4;      // Signature (Poly1305 tag) bytes at the end
 constexpr uint8_t RS_SENDER_RAMP   = 0xA1;   // Sender byte of the ramp's packets
 constexpr uint8_t RS_SENDER_REMOTE = 0xB0;   // Sender byte of a remote's packets = this + its ID (0xB1..0xB4)
+uint8_t  rsFlashRemoteId = 0;                // Remote ID picked in the web flasher (0 = not set)
+uint8_t  rsFlashWaterMode = 0xFF;            // Remote type picked there: 0 BOAT, 1 TIMER (0xFF = not set)
+uint32_t rsFlashId = 0;                      // That flash's number (0 = not web-flashed). The ramp ignores all three.
 
 // Radio Events Callbacks
 static RadioEvents_t RadioEvents;
@@ -267,12 +270,27 @@ constexpr uint8_t LED_2         = 20; // LED 2 (Ramp at 5)
 constexpr uint8_t LED_3         = 26; // LED 3 (Ramp At 5.5)
 constexpr uint8_t LED_4         = 40; // LED 4 (Ramp at 4)
 
+// The web flasher can set the remote ID and type (BOAT / TIMER water mode). They're saved once, on the first boot after
+// that flash; after that the NETWORK / WATER pages can change them as usual, until the next web flash sets them again.
+void applyFlashedSettings()
+{
+  if (rsFlashId == 0 || prefs.getULong("FlashCfgId", 0) == rsFlashId)
+    return;   // No web-flash settings, or already applied
+
+  if (rsFlashRemoteId >= 1 && rsFlashRemoteId <= REMOTE_ID_MAX)
+    prefs.putUChar("RemoteId", rsFlashRemoteId);
+  if (rsFlashWaterMode == WATER_MODE_BOAT || rsFlashWaterMode == WATER_MODE_TIMER)
+    prefs.putUChar("WaterMode", rsFlashWaterMode);
+  prefs.putULong("FlashCfgId", rsFlashId);
+}
+
 void setup() {
   Serial.begin(115200);
 
   //Define Preferences
   prefs.begin("settings", false);
   radioSecurityBegin();   // Radio key from the bind phrase (Radio_Security.ino)
+  applyFlashedSettings(); // Remote ID / type picked in the web flasher, saved on the first boot after that flash
 
   // This remote's ID (set on the NETWORK page)
   REMOTE_ID = prefs.getUChar("RemoteId", DEFAULT_REMOTE_ID);

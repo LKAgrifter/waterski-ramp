@@ -3,7 +3,9 @@
 // ESP Web Tools installer flashes it along with the firmware. Nothing is sent anywhere: it all happens in this page.
 //
 // Block layout (must match rsReadFlashedPhrase): "WSRBIND1", 1 length byte, the phrase (UTF-8, 1-64 bytes),
-// CRC-32 (little-endian) of the length byte + phrase, then 0xFF to the end of the 4 KB.
+// remote ID (1-4, 0 = not set), remote type / water mode (0 BOAT, 1 TIMER, 0xFF = not set), flash number (4 bytes,
+// random, never 0: a remote applies the ID / type once per flash), CRC-32 (little-endian) of everything from the
+// length byte to the flash number, then 0xFF to the end of the 4 KB.
 (function () {
   'use strict';
   const MAGIC = 'WSRBIND1';
@@ -43,15 +45,22 @@
     return [check[0], check[1]].map(b => b.toString(16).toUpperCase().padStart(2, '0')).join('');
   }
 
-  // The 4 KB block to flash at the end of the app partition
-  function bindBlock(phrase) {
+  // The 4 KB block to flash at the end of the app partition.
+  // opts (remotes): { remoteId: 1-4, waterMode: 0 BOAT / 1 TIMER }. flashId is random unless given (tests).
+  function bindBlock(phrase, opts) {
+    opts = opts || {};
     const p = enc.encode(clean(phrase));
-    const block = new Uint8Array(BLOCK).fill(0xFF);
+    const block = new Uint8Array(BLOCK).fill(0xFF), dv = new DataView(block.buffer);
+    let flashId = opts.flashId;
+    while (!flashId) flashId = crypto.getRandomValues(new Uint32Array(1))[0];
     block.set(enc.encode(MAGIC), 0);
     block[8] = p.length;
     block.set(p, 9);
-    const crc = crc32(block.subarray(8, 9 + p.length));
-    new DataView(block.buffer).setUint32(9 + p.length, crc, true);
+    let i = 9 + p.length;
+    block[i++] = (opts.remoteId >= 1 && opts.remoteId <= 4) ? opts.remoteId : 0;
+    block[i++] = (opts.waterMode === 0 || opts.waterMode === 1) ? opts.waterMode : 0xFF;
+    dv.setUint32(i, flashId >>> 0, true); i += 4;
+    dv.setUint32(i, crc32(block.subarray(8, i)), true);
     return block;
   }
 
@@ -82,7 +91,7 @@
   }
 
   // A manifest for ESP Web Tools: the published one plus the bind block. Returns a blob: URL to give the button.
-  async function manifestWithPhrase(manifestUrl, phrase) {
+  async function manifestWithPhrase(manifestUrl, phrase, opts) {
     const base = new URL(manifestUrl, location.href);
     const manifest = JSON.parse(new TextDecoder().decode(await fetchBytes(base.href)));
     for (const build of manifest.builds) {
@@ -94,7 +103,7 @@
       const appBytes = (await fetchBytes(app.path)).byteLength;
       if (app.offset !== part.offset) throw new Error('firmware.bin is not at the app partition');
       if (appBytes + BLOCK > part.size) throw new Error('Firmware too big to leave room for the bind phrase');
-      const blob = new Blob([bindBlock(phrase)], { type: 'application/octet-stream' });
+      const blob = new Blob([bindBlock(phrase, opts)], { type: 'application/octet-stream' });
       parts.push({ path: URL.createObjectURL(blob), offset: part.offset + part.size - BLOCK });
       build.parts = parts;
     }

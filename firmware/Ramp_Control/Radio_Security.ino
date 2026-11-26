@@ -12,6 +12,8 @@
 //      anywhere in the code - the repository is public.
 //   2. The web flasher: it asks for the phrase and writes it into the last 4 KB of the app partition. Flashing later
 //      from the Arduino IDE keeps it (the IDE doesn't write that far), so a web-flashed board stays bound.
+//      For a remote, the flasher also writes the remote ID and type (BOAT / TIMER water mode) picked there; the remote
+//      saves them on its first boot after that flash (applyFlashedSettings in Ramp_Remote.ino). The ramp ignores them.
 //   3. Neither: the board is UNBOUND. It uses a fixed, publicly known key, so it still talks to other unbound boards
 //      (handy on the bench) but anyone could command it. The NETWORK page says "Bind: NONE (open)".
 // Both units show a 4-character code for their key on the NETWORK page ("Bind: 3F2A"). Units with the same code have
@@ -43,7 +45,9 @@
 constexpr uint8_t  RS_BIND_MAX = 64;           // Longest phrase
 constexpr uint32_t RS_BIND_BLOCK = 4096;       // The web flasher writes the phrase in the last 4 KB of the app partition
 constexpr uint32_t RS_FCNT_BLOCK = 4096;       // Frame counters reserved in flash at a time (one flash write per block)
-const char RS_BIND_MAGIC[9] = "WSRBIND1";      // Start of that block (then: length, phrase, CRC-32 of length + phrase)
+// The block: "WSRBIND1", phrase length, phrase, remote ID (0 = not set), water mode (0 BOAT, 1 TIMER, 0xFF = not set),
+// flash number (4 bytes, random per flash, never 0), CRC-32 of everything from the length byte to the flash number.
+const char RS_BIND_MAGIC[9] = "WSRBIND1";
 const char RS_KEY_PREFIX[] = "waterski-ramp/bind/v1:";
 
 uint8_t  rsKey[32];               // The radio key (from the phrase)
@@ -51,6 +55,7 @@ char     rsKeyCode[5] = "----";   // First 2 bytes of SHA-256(key) in hex, shown
 uint8_t  rsBindSource = 0;        // 0 = none (unbound), 1 = web flasher, 2 = bind_phrase.h
 uint32_t rsTxFcnt = 0;            // Next frame counter to send
 uint32_t rsTxFcntReserved = 0;    // Counters below this are reserved in flash
+// (rsFlashRemoteId, rsFlashWaterMode and rsFlashId - the remote settings from the web flasher - are in the main tab.)
 
 // ---------------------------------------------------------------------------
 // Small helpers
@@ -357,14 +362,15 @@ uint32_t rsNextFcnt()
 // Bind phrase and key
 // ---------------------------------------------------------------------------
 
-// The phrase the web flasher wrote at the end of the app partition. False if there is none (or it's damaged).
+// The phrase (and remote settings) the web flasher wrote at the end of the app partition. False if there is none (or
+// it's damaged).
 bool rsReadFlashedPhrase(char *out)
 {
   const esp_partition_t *part = esp_ota_get_running_partition();
   if (part == nullptr || part->size < RS_BIND_BLOCK)
     return false;
 
-  uint8_t buf[8 + 1 + RS_BIND_MAX + 4];
+  uint8_t buf[8 + 1 + RS_BIND_MAX + 6 + 4];
   if (esp_partition_read(part, part->size - RS_BIND_BLOCK, buf, sizeof(buf)) != ESP_OK)
     return false;
   if (memcmp(buf, RS_BIND_MAGIC, 8) != 0)
@@ -373,11 +379,14 @@ bool rsReadFlashedPhrase(char *out)
   uint8_t n = buf[8];
   if (n == 0 || n > RS_BIND_MAX)
     return false;
-  if (rsCrc32(buf + 8, 1 + n) != rsLe32(buf + 9 + n))
+  if (rsCrc32(buf + 8, 1 + n + 6) != rsLe32(buf + 15 + n))
     return false;
 
   memcpy(out, buf + 9, n);
   out[n] = '\0';
+  rsFlashRemoteId = buf[9 + n];
+  rsFlashWaterMode = buf[10 + n];
+  rsFlashId = rsLe32(buf + 11 + n);
   return true;
 }
 
@@ -395,6 +404,9 @@ void rsSetPhrase(const char *phrase)
 void radioSecurityBegin()
 {
   char phrase[RS_BIND_MAX + 1];
+  rsFlashRemoteId = 0;
+  rsFlashWaterMode = 0xFF;
+  rsFlashId = 0;
 
   if (strlen(BIND_PHRASE) > 0)
   {

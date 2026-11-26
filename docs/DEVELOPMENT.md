@@ -35,10 +35,14 @@ Read this before changing behaviour. Settings are named constants near the top o
   after the ramp reboots.
 - **Bind phrase sources**, first found wins: `bind_phrase.h` in the sketch folder (`#define BIND_PHRASE "..."`,
   gitignored - never commit a phrase, the repo is public); the block the web flasher writes in the last 4 KB of the
-  app partition (`"WSRBIND1"`, length, phrase, CRC-32; `flasher/bind.js` builds it and adds it to the ESP Web Tools
-  manifest as an extra part); otherwise unbound (the phrase `""`, a public key: works between unbound boards, but
+  app partition (`"WSRBIND1"`, length, phrase, remote ID, water mode, random flash number, CRC-32; `flasher/bind.js`
+  builds it and adds it to the ESP Web Tools manifest as an extra part); otherwise unbound (the phrase `""`, a public key: works between unbound boards, but
   isn't secure). The NETWORK pages show `Bind:` and a 4-character code (first 2 bytes of SHA-256(key)), plus
   "Bad key" (wrong key or stale echo), "Replayed" and "Old firmware heard" (unencrypted 8 / 19-byte packets).
+- **Remote ID and type from the flasher:** the remote card in the flasher picks the ID (1-4) and type (Boat = BOAT
+  water mode, Shore = TIMER). `applyFlashedSettings()` (remote main tab) saves them to Preferences on the first boot
+  after that flash (it remembers the flash number in `FlashCfgId`), so the NETWORK / WATER pages can still change
+  them afterwards. The ramp's block carries none (ID 0, mode 0xFF).
 - Tests: `tests/host/tests/radio_security.cpp` checks the crypto against the RFC 8439 vector and Python
   `cryptography` (vectors in `radio_vectors.h`, made by `tests/host/tools/gen_radio_vectors.py`), and the refusals.
   Other tests send and read packets through `tests/host/tests/radio_test.h`.
