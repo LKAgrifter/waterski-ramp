@@ -242,4 +242,6 @@ Everything motor-specific is in `Motor_and_Failsafes_Ramp.ino` plus a few consta
   reaches a real sensor (then two read on -> sensor fault). Diagnostics "Sw on:" shows which sensors read on.
 - Games high scores are kept in RAM only.
 - Current sensing (GPIO 4) is not implemented yet: the overcurrent fault and its screen/radio flags exist, but nothing sets it (TODO in `updateMotorControl()`).
-- Remote LEDs: there's no LED tab for the remote yet (only the white water LED, `updateWaterLed()` in its main tab).
+- Remote LEDs: `updateHeightLeds()` and `updateWaterLed()` in its main tab, both from the ramp's telemetry (height LEDs
+  as on the ramp: its height when stopped, a strobe in the direction of travel while moving, all off without a link).
+  Test: `remote_leds.cpp`.
