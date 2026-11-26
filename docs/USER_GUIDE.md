@@ -197,7 +197,7 @@ Both units have a hidden Water Ski Arcade with five games. The games never touch
 | Ramp Jump: pick a height, stop the power meter in the sweet spot | UP / DOWN pick, MENU go, UP or MENU stop |
 | Trick Combo: repeat the trick sequence | UP jump, MENU spin, DOWN duck |
 
-Best scores reset when the unit is switched off.
+Best scores are saved, so they're still there after the unit is switched off. A firmware update that changes how a game scores can reset them.
 
 ## Quick reference
 
