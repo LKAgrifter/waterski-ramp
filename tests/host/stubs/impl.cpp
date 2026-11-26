@@ -5,3 +5,5 @@ std::string g_serialIn, g_serialOut; bool g_serialCapture=false;
 #include "esp_ota_ops.h"
 esp_partition_t g_testPartition = {0x10000, 0};
 uint8_t *g_testPartitionData = nullptr;
+void (*g_onMcuBegin)() = nullptr;
+std::string g_displayText;

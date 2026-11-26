@@ -69,6 +69,8 @@ TESTCASES = [
     ('one_remote_remote',        'one_remote.cpp',              'remote',     ['REMOTE'], False),
     ('radio_security_ramp',      'radio_security.cpp',          'ramp',       [], False),
     ('radio_security_remote',    'radio_security.cpp',          'remote',     ['REMOTE'], False),
+    ('radio_start_screen_ramp',  'radio_start_screen.cpp',      'ramp',       [], False),
+    ('radio_start_screen_remote','radio_start_screen.cpp',      'remote',     ['REMOTE'], False),
     ('sim_mode',                 'sim_mode.cpp',                'ramp_sim',   ['SIM'], False),
     ('sim_mode_boot_no_sensor',  'sim_mode.cpp',                'ramp_sim',   ['SIM', 'NOSENSOR'], False),
     ('sim_mode_off',             'sim_mode.cpp',                'ramp',       [], False),
