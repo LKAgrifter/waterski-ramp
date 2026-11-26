@@ -87,6 +87,17 @@ Hold **UP** or **DOWN** to drive the ramp; let go and it stops at once.
 
 A scrolling list (UP / DOWN) of faults and readings: calibration, sensor faults, which sensors read on, motor timeout, the last sensor zone and step times, overcurrent, bypass, motor and mode, heights, remotes online, the height-button reading and uptime.
 
+At the bottom of the list is **Motor usage**: how much the ramp has been used since it was first flashed.
+
+![Motor usage, at the bottom of the DIAGNOSTICS list](images/user-guide/ramp-diagnostics-usage.png)
+
+- **Cycles**: every time the motor has run, from start to stop. A height move is usually one cycle, each press-and-hold on the MANUAL page is one, and a move that changes direction part way is two. Split into height moves and manual runs, and into up and down.
+- **Run time**: total time the motor has been on.
+- **Travelled**: total height the ramp has moved, in feet (counted each time it reaches a different height sensor).
+- **Avg step**: average time for one 0.5 ft step between sensors. Compare it with "Step" higher up the list: a step that takes noticeably longer than the average can mean the jack or motor is wearing or binding.
+
+The counters are saved, so they survive power cuts and firmware updates. Only "erase device" in the web flasher resets them. The remotes don't show them.
+
 ### 6. NETWORK
 
 ![Ramp NETWORK page (top of the list)](images/user-guide/ramp-network.png)

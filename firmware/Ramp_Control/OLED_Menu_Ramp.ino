@@ -515,6 +515,20 @@ void buildDiagLines()
     addLine("Ladder %d %s", ladderRawAdc, ladderName(readLadderFromRaw(ladderRawAdc)));
     unsigned long s = millis() / 1000UL;
     addLine("Uptime: %luh %02lum", s / 3600UL, (s % 3600UL) / 60UL);
+
+    // Motor usage (saved in flash; a cycle = one motor run, start to stop)
+    unsigned long runS = (unsigned long)(motorUse.runMs / 1000ULL);
+    addLine("-- Motor usage --");
+    addLine("Cycles: %lu", (unsigned long)motorUse.cycles);
+    addLine("Height moves: %lu", (unsigned long)motorUse.autoRuns);
+    addLine("Manual runs: %lu", (unsigned long)motorUse.manualRuns);
+    addLine("Up %lu  Down %lu", (unsigned long)motorUse.upRuns, (unsigned long)motorUse.downRuns);
+    addLine("Run time: %luh %02lum", runS / 3600UL, (runS % 3600UL) / 60UL);
+    addLine("Travelled: %.1f ft", motorUse.halfSteps * 0.5f);
+    if (motorUse.stepCount)
+        addLine("Avg step: %.1fs", (float)(motorUse.stepMsSum / motorUse.stepCount) / 1000.0f);
+    else
+        addLine("Avg step: --");
 }
 
 void drawDiagnosticsScreen()

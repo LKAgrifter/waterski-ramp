@@ -170,6 +170,9 @@ void updateHeight()
   uint8_t newlyHit = activeMask & ~prevMask;
   if(newlyHit != 0 && state.Motor_Running)
   {
+    if(activeCount == 1)
+      motorUsageArrived(activeHeight);   // Height travelled, for the motor usage counters
+
     // MISSED SWITCH: an AUTO move reached a switch BEYOND the height it was heading for, so the target's switch never
     // triggered. Stop and flag it - otherwise the ramp would bounce between the switches either side forever.
     if(state.Control_Mode == MODE_AUTO && activeCount == 1 &&
@@ -187,7 +190,10 @@ void updateHeight()
       // Measure the step for the Diagnostics page (only a clean switch-to-switch step: motor started ON a switch or
       // passed one, and didn't stop on the way)
       if(state.Step_From_Switch)
+      {
         state.Last_Step_Ms = millis() - state.MotorStartTime;
+        motorUsageStep(state.Last_Step_Ms);
+      }
       state.Step_From_Switch = true;
       state.MotorStartTime = millis();   // Restart the motor safety timeout (it's per height step, not per whole move)
     }

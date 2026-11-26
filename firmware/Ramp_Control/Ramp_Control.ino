@@ -214,7 +214,7 @@ Button &MenuButton  = EnterButton;   // HOLD = next page
 Button &WaterButton = BackButton;    // Water page: tap = +1 h, hold = off
 
 //Menu list pages (Network / Diagnostics) share these
-constexpr uint8_t LIST_MAX_LINES = 16;   // lines a list page can hold
+constexpr uint8_t LIST_MAX_LINES = 26;   // lines a list page can hold
 constexpr uint8_t LIST_LINE_LEN  = 26;   // chars per line incl. NUL (the OLED fits ~24 at 10 pt)
 constexpr uint8_t LIST_VISIBLE   = 4;    // lines visible at once
 char    listLines[LIST_MAX_LINES][LIST_LINE_LEN];
@@ -340,6 +340,26 @@ struct Diagnostics
 
 Diagnostics diag;
 
+// MOTOR USAGE counters, shown at the bottom of the Diagnostics page. Saved in flash, so they survive power cuts and
+// reflashing (only "erase device" in the web flasher clears them). A CYCLE is one motor run, from start to stop: a
+// height move is usually one cycle, each press-and-hold on a MANUAL page is one, and a move that reverses is two.
+struct MotorUsage
+{
+  uint32_t cycles = 0;        // Every motor run
+  uint32_t autoRuns = 0;      //   ...that were height moves (SET HEIGHT page or a remote's height pick)
+  uint32_t manualRuns = 0;    //   ...that were manual drive (MANUAL page, at the ramp or on a remote)
+  uint32_t upRuns = 0;
+  uint32_t downRuns = 0;
+  uint32_t halfSteps = 0;     // Height travelled, in 0.5 ft steps (counted on reaching a different height sensor)
+  uint64_t runMs = 0;         // Total time the motor has been on
+  uint32_t stepCount = 0;     // Timed sensor-to-sensor steps, for the average step time
+  uint64_t stepMsSum = 0;
+  unsigned long runStart = 0; // (not saved) millis() when the current run started
+  float lastArrival = -1.0f;  // (not saved) the height sensor last reached (-1 = none yet)
+};
+
+MotorUsage motorUse;
+
 // Forward declarations for functions that have default arguments. The Arduino IDE joins the .ino files alphabetically and
 // does NOT auto-generate prototypes for functions with default arguments, so without these the Button file (which comes
 // before Water_Controller_Ramp) can't see waterControl(). The defaults themselves stay on the definitions - don't repeat them here.
@@ -370,6 +390,7 @@ void setup() {
 
   //Define Preferences
   prefs.begin("settings", false);
+  loadMotorUsage();   // Motor usage counters for the Diagnostics page
 
   //Check for Power Loss
   powerLossRecovery();
