@@ -225,7 +225,7 @@ Hold MENU 0.5 s on any page to go to the next one.
 
 **Reflashing.** Use the browser flasher at [lkagrifter.github.io/waterski-ramp](https://lkagrifter.github.io/waterski-ramp/) in Chrome or Edge. Flash the ramp and all remotes from the same version, with the same bind phrase. Saved settings are kept: the flasher never erases the board, because erasing would also delete the board's Heltec radio license.
 
-**Screen stays off after flashing.** Check the board's messages (Arduino IDE > Tools > Serial Monitor, 115200 baud). If it repeats "Please provide a correct license!" with an `ESP32ChipID=`, the board's Heltec license has been erased (by a full flash erase in some tool). Look up the chip ID at [resource.heltec.cn/search](https://resource.heltec.cn/search) to get four numbers like `0xC2F3D087,0x...`, then send `AT+CDKEY=` followed by them without the `0x` and commas (32 characters) in the Serial Monitor, with line ending "Both NL & CR". It answers "The board is actived" and starts, and keeps the license from then on.
+**Screen stays off after flashing.** Check the board's messages (Arduino IDE > Tools > Serial Monitor, 115200 baud). If it repeats "Please provide a correct license!" with an `ESP32ChipID=`, the board's Heltec license has been erased (by a full flash erase in some tool). Look up the chip ID at [resource.heltec.cn/search](https://resource.heltec.cn/search) to get four numbers like `0x1A2B3C4D,0x...`, then send `AT+CDKEY=` followed by them without the `0x` and commas (32 characters) in the Serial Monitor, with line ending "Both NL & CR". It answers "The board is actived" and starts, and keeps the license from then on.
 
 **Firmware settings** (top of each sketch; change, then reflash):
 
