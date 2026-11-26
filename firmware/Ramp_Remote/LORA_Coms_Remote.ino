@@ -52,7 +52,8 @@ inline uint8_t floatToHeightIndex(float h) {
 enum AckResult : uint8_t {
   ACK_NONE   = 0,   // Periodic broadcast, not an answer to anyone
   ACK_OK     = 1,   // Command accepted
-  ACK_LOCKED = 2    // Height / manual command refused (ramp local override, local manual in progress, or bypass active)
+  ACK_LOCKED = 2,   // Height / manual command refused (ramp local override, local manual in progress, or bypass active)
+  ACK_BUSY   = 3    // Height / manual command refused: another remote has control (the ramp's ONE_REMOTE_AT_A_TIME)
 };
 
 // Bits in TelemetryPacket.flags. Must match the ramp side exactly.
@@ -61,6 +62,7 @@ constexpr uint8_t FLAG_MANUAL         = 0x02;   // Ramp is in manual drive
 constexpr uint8_t FLAG_OVERCURRENT    = 0x04;   // diag.overCurrentFault
 constexpr uint8_t FLAG_LOCAL_OVERRIDE = 0x08;   // Local height override is locking remotes out
 constexpr uint8_t FLAG_REMOTE_MANUAL_OFF = 0x10; // The ramp doesn't allow manual drive from remotes (its ALLOW_REMOTE_MANUAL)
+constexpr uint8_t FLAG_OWNER_SHIFT    = 5;      // Bits 5-7: the remote that has control (1..4, 0 = none)
 
 // Telemetry packet sent from Ramp -> all remotes (19 bytes). Must match the ramp side exactly.
 struct __attribute__((packed)) TelemetryPacket {
@@ -157,9 +159,11 @@ unsigned long nextHeartbeatAt = 0;
 uint8_t manualStopBurst = 0;            // "I let go" packets still to send
 unsigned long nextManualAt = 0;
 unsigned long manualBlockedTime = 0;    // Last time the ramp refused our manual request (someone is on the local buttons)
+unsigned long manualBusyTime = 0;       // Last time the ramp refused our manual request because another remote has control
 
 bool commandFailed = false;
 bool commandLocked = false;
+bool commandBusy = false;               // The failed command was refused because another remote has control
 unsigned long commandFailedTime = 0;
 
 
@@ -176,6 +180,7 @@ void startCommand()
   retryNotBefore = millis();
   commandFailed = false;
   commandLocked = false;
+  commandBusy = false;
 }
 
 void requestRemoteHeight(float height)
@@ -269,6 +274,33 @@ bool manualBlocked()         // True for 1.5 s after the ramp refused our manual
   return manualBlockedTime != 0 && (millis() - manualBlockedTime) < 1500;
 }
 
+bool heightRequestBusy()     // True for 3 s after the ramp said another remote has control
+{
+  return heightRequestFailed() && commandBusy;
+}
+
+bool manualBusy()            // True for 1.5 s after the ramp refused our manual drive because another remote has control
+{
+  return manualBusyTime != 0 && (millis() - manualBusyTime) < 1500;
+}
+
+// Another remote has control of the ramp right now (the ramp says so in every status packet)
+bool otherRemoteInControl()
+{
+  return state.Remote_Connected && state.Control_Owner != 0 && state.Control_Owner != REMOTE_ID;
+}
+
+// "Remote 2 has control" (or "REMOTE 2 IN CONTROL" with caps = true) for the screens
+const char *controlOwnerText(bool caps)
+{
+  static char buf[24];
+  if (state.Control_Owner == 0 || state.Control_Owner == REMOTE_ID)
+    snprintf(buf, sizeof(buf), caps ? "OTHER REMOTE BUSY" : "Other remote busy");
+  else
+    snprintf(buf, sizeof(buf), caps ? "REMOTE %u IN CONTROL" : "Remote %u has control", (unsigned)state.Control_Owner);
+  return buf;
+}
+
 
 // ---------------------------------------------------------------------------
 // Transmit
@@ -320,6 +352,7 @@ void handleLoraLink()
     state.Manual_Active      = (lastTelemetry.flags & FLAG_MANUAL) != 0;
     state.localOverrideActive = (lastTelemetry.flags & FLAG_LOCAL_OVERRIDE) != 0;
     state.Remote_Manual_Off  = (lastTelemetry.flags & FLAG_REMOTE_MANUAL_OFF) != 0;
+    state.Control_Owner      = (uint8_t)(lastTelemetry.flags >> FLAG_OWNER_SHIFT) & 0x07;
     diag.overCurrentFault    = (lastTelemetry.flags & FLAG_OVERCURRENT) != 0;
     diag.powerLoss           = lastTelemetry.powerLoss != 0;
     diag.heightSensorFault   = lastTelemetry.heightSensorFault != 0;
@@ -342,6 +375,13 @@ void handleLoraLink()
       manualBlockedTime = now;
     }
 
+    // ...or refused it because another remote has control
+    if (lastTelemetry.ackRemoteId == REMOTE_ID && lastTelemetry.ackSeq == 0 &&
+        lastTelemetry.ackResult == ACK_BUSY && state.Control_Mode != MODE_AUTO)
+    {
+      manualBusyTime = now;
+    }
+
     // Is this the ramp answering our command?
     if (cmdPending && lastTelemetry.ackRemoteId == REMOTE_ID && lastTelemetry.ackSeq == cmdSeq)
     {
@@ -355,6 +395,12 @@ void handleLoraLink()
       {
         commandFailed = true;
         commandLocked = true;
+        commandFailedTime = now;
+      }
+      else if (lastTelemetry.ackResult == ACK_BUSY)
+      {
+        commandFailed = true;
+        commandBusy = true;
         commandFailedTime = now;
       }
 
@@ -406,6 +452,7 @@ void handleLoraLink()
     loraStats.cmdFails++;
     commandFailed = true;
     commandLocked = false;
+    commandBusy = false;
     commandFailedTime = now;
   }
 

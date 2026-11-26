@@ -101,7 +101,9 @@ The remote has the same six pages. It sends each request to the ramp and shows w
 
 ![Remote HOME page: Ramp ONLINE](images/user-guide/remote-home.png)
 
-Same as the ramp's HOME, but the bottom line shows "Ramp: ONLINE / OFFLINE". Extra status messages: NO RAMP LINK, RAMP IN USE (someone is using the ramp's own buttons) and NO RESPONSE (a request wasn't answered).
+Same as the ramp's HOME, but the bottom line shows "Ramp: ONLINE / OFFLINE". Extra status messages: NO RAMP LINK, RAMP IN USE (someone is using the ramp's own buttons), REMOTE 2 IN CONTROL (another remote is using the ramp, see below) and NO RESPONSE (a request wasn't answered).
+
+**One remote at a time.** When the ramp takes a height pick or manual drive from a remote, that remote has control until the ramp has stopped moving and 5 more seconds have passed. Meanwhile the other remotes can't pick a height or drive it by hand: their screens say "Remote 2 has control" (with that remote's number). Water still works from every remote, and the buttons on the ramp itself always win.
 
 ### 2. WATER
 
@@ -124,7 +126,7 @@ Quick taps in TIMER mode are queued ("Adding +3 h...") and each counts exactly o
 
 ![Remote SET HEIGHT page: 5.0 ft picked, ramp moving up](images/user-guide/remote-setheight-moving.png)
 
-Works like the ramp: press a height button. The bottom line shows Sending..., then the ramp's progress, or why it was refused: "Ramp buttons in use", "No response, retry", "Ramp CAL REQUIRED".
+Works like the ramp: press a height button. The bottom line shows Sending..., then the ramp's progress, or why it was refused: "Ramp buttons in use", "Remote 2 has control", "No response, retry", "Ramp CAL REQUIRED".
 
 ### 4. MANUAL ADJUST
 
@@ -135,6 +137,7 @@ Hold **UP** or **DOWN** to drive the ramp from the remote. If the radio drops ou
 - it needs calibration: "CAL: drive at the ramp"
 - the testing bypass is on: "BYPASS: ramp btns only"
 - someone is holding a button at the ramp: "Ramp buttons in use!"
+- another remote has control: "Remote 2 has control"
 - the ramp is set to allow manual driving only at the ramp: "Manual: at the ramp only"
 
 ### 5. DIAGNOSTICS
@@ -213,6 +216,8 @@ Hold MENU 0.5 s on any page to go to the next one.
 | Setting | Unit | Normal value | What it does |
 | --- | --- | --- | --- |
 | `ALLOW_REMOTE_MANUAL` | Ramp | true | false = manual driving only at the ramp |
+| `ONE_REMOTE_AT_A_TIME` | Ramp | true | false = any remote can pick a height at any time (the last pick wins) |
+| `REMOTE_CONTROL_HOLD_MS` | Ramp | 5000 | how long a remote keeps control after the ramp stops (ms) |
 | `ALLOW_HEIGHT_SAFETY_BYPASS` | Ramp | true | false = no testing bypass at all |
 | `ALLOW_BYPASS_FROM_REMOTE` | Ramp | false | true = remotes may switch the bypass |
 | `HEIGHT_SAFETY_BYPASS_AT_BOOT` | Ramp | false | true = starts with the bypass on (bench without sensors) |
