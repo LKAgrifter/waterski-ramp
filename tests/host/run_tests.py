@@ -75,6 +75,8 @@ TESTCASES = [
     ('radio_start_screen_remote','radio_start_screen.cpp',      'remote',     ['REMOTE'], False),
     ('boot_animation_ramp',      'boot_animation.cpp',          'ramp',       [], False),
     ('boot_animation_remote',    'boot_animation.cpp',          'remote',     ['REMOTE'], False),
+    ('high_scores_ramp',         'high_scores.cpp',             'ramp',       [], False),
+    ('high_scores_remote',       'high_scores.cpp',             'remote',     ['REMOTE'], False),
     ('sim_mode',                 'sim_mode.cpp',                'ramp_sim',   ['SIM'], False),
     ('sim_mode_boot_no_sensor',  'sim_mode.cpp',                'ramp_sim',   ['SIM', 'NOSENSOR'], False),
     ('sim_mode_off',             'sim_mode.cpp',                'ramp',       [], False),

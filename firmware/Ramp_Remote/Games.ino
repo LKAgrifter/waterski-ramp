@@ -28,13 +28,16 @@
 //    failsafes and radio still run between frames, and the page times out to HOME after 1 min like any other.
 //  * Button presses are caught by hardware interrupts and latched, so a tap registers even while the screen is being
 //    redrawn or if the games are only being called a few times a second.
-//  * Each game's best score is kept in RAM (cleared on reboot).
+//  * Each game's best score is saved in flash (Preferences "GmHi1".."GmHi5"), so it survives reboots and reflashing.
+//    It's written only when a game ends with a new best. Bump GM_SCORES_VERSION when a game's scoring changes: the
+//    old bests are then cleared on the next boot.
 //  * GM_DEBUG (below) prints "c<calls/s> d<draw ms> e<presses seen>" in the menu's title bar. c should be in the hundreds
 //    (about 12 would mean the games are being throttled by the screen refresh). Set GM_DEBUG to false when you are done.
 // ===========================================================================
 
 constexpr bool    GM_DEBUG = false;
 constexpr uint8_t GM_COUNT = 5;
+constexpr uint8_t GM_SCORES_VERSION = 1;   // Bump when a game's scoring changes, to clear the saved high scores
 
 constexpr uint8_t GM_B_UP = 0;
 constexpr uint8_t GM_B_DOWN = 1;
@@ -45,7 +48,8 @@ const char * const gmNames[GM_COUNT] = { "Ski Dash", "Tow Snake", "Slalom Run", 
 
 uint8_t       gmCur = 0;               // 0 = the menu, 1..GM_COUNT = a game
 uint8_t       gmSel = 0;               // Menu selection
-uint16_t      gmHigh[GM_COUNT + 1];    // Best score per game (index = game number)
+uint16_t      gmHigh[GM_COUNT + 1];    // Best score per game (index = game number), loaded from flash ...
+bool          gmHighLoaded = false;    // ... the first time the games page opens
 unsigned long gmLastCall = 0;          // millis() of the last gamesFrame() call (a long gap means we were on another page)
 unsigned long gmLastTick = 0;
 unsigned long gmSecStart = 0;
@@ -174,6 +178,45 @@ void gmCentre(int x, int y, const char *text)
 }
 
 // Header for the games that count points: "<label> 12"  /  "HI 40"
+// The saved high score's Preferences key for game g (1..GM_COUNT): "GmHi1".."GmHi5"
+void gmHighKey(uint8_t g, char *key)
+{
+  snprintf(key, 8, "GmHi%u", (unsigned)g);
+}
+
+// Load the saved high scores (once). Scores saved under another GM_SCORES_VERSION are cleared.
+void gmLoadHighs()
+{
+  if (gmHighLoaded)
+    return;
+  gmHighLoaded = true;
+
+  char key[8];
+  bool sameVersion = prefs.getUChar("GmHiVer", 0) == GM_SCORES_VERSION;
+  for (uint8_t g = 1; g <= GM_COUNT; g++)
+  {
+    gmHighKey(g, key);
+    gmHigh[g] = sameVersion ? prefs.getUShort(key, 0) : 0;
+    if (!sameVersion && prefs.getUShort(key, 0) != 0)
+      prefs.putUShort(key, 0);
+  }
+  if (!sameVersion)
+    prefs.putUChar("GmHiVer", GM_SCORES_VERSION);
+}
+
+// A game ended with this score: true (and saved) if it beats the game's best
+bool gmNewHigh(uint8_t g, uint16_t score)
+{
+  gmLoadHighs();
+  if (score <= gmHigh[g])
+    return false;
+  gmHigh[g] = score;
+  char key[8];
+  gmHighKey(g, key);
+  prefs.putUShort(key, score);
+  return true;
+}
+
 void gmScoreHeader(const char *label, unsigned score, unsigned high)
 {
   char a[24];
@@ -353,11 +396,8 @@ void skiStep()   // One 40 ms physics step
       skiG.phase = SKI_DEAD;
       skiG.deadSince = millis();
       skiG.h = 0.0f;
-      if (skiG.score > gmHigh[1])
-      {
-        gmHigh[1] = skiG.score;
+      if (gmNewHigh(1, skiG.score))
         skiG.newBest = true;
-      }
     }
   }
 }
@@ -555,11 +595,8 @@ void snkDie()
 {
   snk.phase = SKI_DEAD;
   snk.deadSince = millis();
-  if (snk.score > gmHigh[2])
-  {
-    gmHigh[2] = snk.score;
+  if (gmNewHigh(2, snk.score))
     snk.newBest = true;
-  }
 }
 
 void snkStep()
@@ -813,11 +850,8 @@ void slmStep()
     {
       slm.phase = SKI_DEAD;
       slm.deadSince = millis();
-      if (slm.score > gmHigh[3])
-      {
-        gmHigh[3] = slm.score;
+      if (gmNewHigh(3, slm.score))
         slm.newBest = true;
-      }
       return;
     }
 
@@ -1090,11 +1124,8 @@ void rjFrame()
           rj.phase = RJ_DONE;
           rj.doneSince = now;
           uint16_t total = (uint16_t)rj.total;
-          if (total > gmHigh[4])
-          {
-            gmHigh[4] = total;
+          if (gmNewHigh(4, total))
             rj.newBest = true;
-          }
         }
         else
         {
@@ -1162,11 +1193,8 @@ void tcDie()
 {
   tc.phase = TC_DEAD;
   tc.deadSince = millis();
-  if (tc.score > gmHigh[5])
-  {
-    gmHigh[5] = tc.score;
+  if (gmNewHigh(5, tc.score))
     tc.newBest = true;
-  }
 }
 
 void tcPress(uint8_t trick)
@@ -1439,6 +1467,7 @@ void gmMenuFrame()
 void gamesFrame()
 {
   unsigned long now = millis();
+  gmLoadHighs();   // Saved high scores, the first time the games page opens
 
   if (!gmIsrAttached)
   {

@@ -97,6 +97,8 @@ it reports moving over a live link) and always returns to HOME.
 - **Height buttons only work on SET HEIGHT** (glovebox protection on the remote).
 - UP/DOWN motor buttons only work on MANUAL. A press must *start* on that page (armed buttons).
 - Hidden GAMES page: hold UP + DOWN together 2 s on HOME (page 1 only). `Games.ino` is the same file in both sketches.
+  High scores are saved in Preferences (`GmHi1`-`GmHi5`, written only on a new best); bump `GM_SCORES_VERSION` in
+  `Games.ino` when a game's scoring changes, to clear them.
 - Heights show **blank** when unknown (never located, CAL REQUIRED, or no ramp link on a remote).
 - **Remote ID** (1-4, must be unique per ramp) is a saved setting on each remote: NETWORK page, hold UP + DOWN
   together 2 s to step it. Stored in flash (`Preferences` key `RemoteId`), so one firmware file serves every remote and
