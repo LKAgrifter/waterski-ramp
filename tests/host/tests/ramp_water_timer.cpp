@@ -6,13 +6,14 @@ static int pinv[64]; static int outv[64]; static int adc=3200;
 RadioT Radio;
 void pinMode(uint8_t,uint8_t){} void digitalWrite(uint8_t p,uint8_t v){outv[p]=v;} int digitalRead(uint8_t p){ if(p==34||p==33||p==47||p==48) return !pinv[p]; return pinv[p]; } int analogRead(uint8_t){return adc;}
 #include SRC
+#include "radio_test.h"
 static int fails=0;
 #define CHECK(c,msg) do{ if(!(c)){printf("FAIL: %s\n",msg);fails++;} else printf("ok:   %s\n",msg);}while(0)
 void run(int ms){ for(int i=0;i<ms;i++){ g_millis++; loop(); } }
 void jump(unsigned long ms){ g_millis+=ms; run(5); }   // let time pass without simulating every millisecond
 void sendCmd(uint8_t remote,int8_t water,uint8_t seq){
   static uint8_t ctr=0; CommandPacket c; c.remoteId=remote; c.seq=seq; c.targetHeightIndex=-1; c.waterCommand=water; c.remoteControlMode=0; c.bypassCommand=-1; c.txCounter=ctr++;
-  OnRxDone((uint8_t*)&c,sizeof(c),-60,7); run(20); }
+  rxCommand(c,-60,7); run(20); }
 int main(){
   for(int i=0;i<64;i++) pinv[i]=1;
   pinv[34]=0;   // parked on the 4 ft sensor

@@ -53,8 +53,8 @@ TESTCASES = [
     ('remote_ladder',            'remote_ladder.cpp',           'remote',     ['CALMODE=0'], False),
     ('remote_ladder_cal_mode',   'remote_ladder.cpp',           'remote_cal', ['CALMODE=1'], False),
     ('blank_heights_remote',     'blank_heights.cpp',           'remote',     ['REMOTE'], False),
-    ('remote_id',                'remote_id.cpp',               'remote',     [], False),
-    ('remote_water_mode',        'remote_water_mode.cpp',       'remote',     [], False),
+    ('remote_id',                'remote_id.cpp',               'remote',     ['REMOTE'], False),
+    ('remote_water_mode',        'remote_water_mode.cpp',       'remote',     ['REMOTE'], False),
     ('ramp_water_timer',         'ramp_water_timer.cpp',        'ramp',       [], False),
     ('bypass_buttons_ramp',      'bypass_buttons.cpp',          'ramp',       [], False),
     ('bypass_buttons_remote',    'bypass_buttons.cpp',          'remote',     ['REMOTE'], False),
@@ -67,6 +67,8 @@ TESTCASES = [
     ('one_remote_ramp',          'one_remote.cpp',              'ramp',       [], False),
     ('one_remote_multi',         'one_remote.cpp',              'ramp_multi_remote', ['MULTI'], False),
     ('one_remote_remote',        'one_remote.cpp',              'remote',     ['REMOTE'], False),
+    ('radio_security_ramp',      'radio_security.cpp',          'ramp',       [], False),
+    ('radio_security_remote',    'radio_security.cpp',          'remote',     ['REMOTE'], False),
     ('sim_mode',                 'sim_mode.cpp',                'ramp_sim',   ['SIM'], False),
     ('sim_mode_boot_no_sensor',  'sim_mode.cpp',                'ramp_sim',   ['SIM', 'NOSENSOR'], False),
     ('sim_mode_off',             'sim_mode.cpp',                'ramp',       [], False),
@@ -181,6 +183,11 @@ def main():
     g2 = open(os.path.join(FW, 'Ramp_Remote', 'Games.ino')).read()
     if g1 != g2:
         print(color('  Games.ino differs between Ramp_Control and Ramp_Remote - they must be identical copies.', '31'))
+        failed += 1
+    s1 = open(os.path.join(FW, 'Ramp_Control', 'Radio_Security.ino')).read()
+    s2 = open(os.path.join(FW, 'Ramp_Remote', 'Radio_Security.ino')).read()
+    if s1 != s2:
+        print(color('  Radio_Security.ino differs between Ramp_Control and Ramp_Remote - they must be identical copies.', '31'))
         failed += 1
 
     todo = [t for t in TESTCASES if a.k in t[0] and not (a.quick and t[4])]

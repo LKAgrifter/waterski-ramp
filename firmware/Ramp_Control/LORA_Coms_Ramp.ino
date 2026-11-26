@@ -60,7 +60,18 @@ constexpr uint8_t FLAG_OWNER_SHIFT    = 5;      // Bits 5-7: the remote that has
 //   -1 = ignore, 0 = off, 1 = on (1 h timer), 2 = keep-alive (refresh a remote-started timer, never starts water),
 //    3 = timer tap (TIMER-mode remote): +1 h exactly like a tap on the ramp's Water page (the tap after 12 h = off)
 
-// Telemetry packet sent from Ramp -> all remotes (19 bytes). Must match the remote side exactly.
+// On the air (Radio_Security.ino) the telemetry is packed into RS_TELEMETRY_LEN bytes and encrypted:
+//   [0] ramp height idx (bits 0-1) | desired height idx (bits 2-3) | limitMask (bits 4-7)
+//   [1] bits: 0 waterRelay, 1 motorRunning, 2 motorDirectionUp, 3 powerLoss, 4 heightSensorFault, 5 motorTimeoutFault
+//   [2] faultCount   [3] heightFaultMask (bits 0-3) | ackResult (bits 4-7)   [4] ackRemoteId   [5] ackSeq
+//   [6] flags        [7-8] waterRemainMin (little-endian)
+// packetId and txCounter aren't sent: the packet's sender byte and frame counter do their jobs.
+// A command goes as RS_COMMAND_LEN bytes: seq, targetHeightIndex, waterCommand, remoteControlMode, bypassCommand
+// (remoteId is in the sender byte, txCounter is the frame counter).
+constexpr uint8_t RS_TELEMETRY_LEN = 9;
+constexpr uint8_t RS_COMMAND_LEN = 5;
+
+// Telemetry from the Ramp -> all remotes (as built in memory). Must match the remote side exactly.
 struct __attribute__((packed)) TelemetryPacket {
   uint8_t packetId = 0xA1;
   uint8_t rampHeightIndex;
@@ -82,7 +93,7 @@ struct __attribute__((packed)) TelemetryPacket {
   uint8_t txCounter;     // Increments on every packet the ramp sends. Remotes use gaps in it to measure packet loss.
 };
 
-// Command packet sent from a remote -> Ramp (8 bytes). Must match the remote side exactly.
+// Command from a remote -> Ramp (as decoded in memory). Must match the remote side exactly.
 struct __attribute__((packed)) CommandPacket {
   uint8_t packetId = 0xB2;
   uint8_t remoteId;          // 1..MAX_REMOTES, unique per remote
@@ -108,6 +119,9 @@ uint8_t pendingAckSeq = 0;
 uint8_t pendingAckResult = ACK_NONE;
 unsigned long lastTelemetryTx = 0;
 uint8_t telemetryCounter = 0;
+uint32_t lastTelemetryFcnt = 0;       // Frame counter of the last telemetry we sent (remotes sign their commands with it)
+bool telemetrySent = false;
+constexpr uint8_t COMMAND_ECHO_WINDOW = 16;   // A command must be signed with one of our last 16 telemetry counters (~4 s)
 
 // Per-remote tracking (index = remoteId - 1).
 unsigned long remoteLastSeen[MAX_REMOTES] = {0};
@@ -127,6 +141,9 @@ struct LoraStats {
   uint32_t txOk = 0;          // Telemetry packets sent
   uint32_t txTimeout = 0;     // Telemetry transmissions that timed out
   uint32_t lost = 0;          // Command packets we know we missed (gaps in the remotes' counters)
+  uint32_t rxBadKey = 0;      // Packets not signed with our key (different bind phrase) or with a stale ramp counter
+  uint32_t rxReplay = 0;      // Correctly signed but old (played back)
+  uint32_t rxOldFw = 0;       // Unencrypted packets from older firmware
   int16_t  rssi = 0;          // Last valid packet
   int8_t   snr = 0;
 };
@@ -136,8 +153,10 @@ int16_t  remoteRssi[MAX_REMOTES] = {0};
 int8_t   remoteSnr[MAX_REMOTES] = {0};
 uint32_t remoteRxCount[MAX_REMOTES] = {0};
 uint32_t remoteLost[MAX_REMOTES] = {0};
-uint8_t  remoteLastCounter[MAX_REMOTES] = {0};
+uint32_t remoteLastCounter[MAX_REMOTES] = {0};   // For packet loss (frame counter gaps)
 bool     remoteHaveCounter[MAX_REMOTES] = {false};
+uint32_t remoteLastFcnt[MAX_REMOTES] = {0};      // Newest frame counter accepted from each remote (older = played back)
+bool     remoteHaveFcnt[MAX_REMOTES] = {false};
 
 
 // Call every loop. Sends the 4 Hz broadcast, or the reply to a command that just arrived.
@@ -192,9 +211,27 @@ void handleLoraBroadcast()
     packet.ackResult = ACK_NONE;
   }
 
+  // Pack (see the top of this tab), encrypt and send
+  uint8_t plain[RS_TELEMETRY_LEN];
+  plain[0] = (uint8_t)((packet.rampHeightIndex & 0x03) | ((packet.desiredHeightIndex & 0x03) << 2) | ((packet.limitMask & 0x0F) << 4));
+  plain[1] = (uint8_t)((packet.waterRelay ? 0x01 : 0) | (packet.motorRunning ? 0x02 : 0) | (packet.motorDirectionUp ? 0x04 : 0) |
+                       (packet.powerLoss ? 0x08 : 0) | (packet.heightSensorFault ? 0x10 : 0) | (packet.motorTimeoutFault ? 0x20 : 0));
+  plain[2] = packet.faultCount;
+  plain[3] = (uint8_t)((packet.heightFaultMask & 0x0F) | ((packet.ackResult & 0x0F) << 4));
+  plain[4] = packet.ackRemoteId;
+  plain[5] = packet.ackSeq;
+  plain[6] = packet.flags;
+  plain[7] = (uint8_t)(packet.waterRemainMin & 0xFF);
+  plain[8] = (uint8_t)(packet.waterRemainMin >> 8);
+
+  uint8_t air[RS_HEADER_LEN + RS_TELEMETRY_LEN + RS_TAG_LEN];
+  lastTelemetryFcnt = rsNextFcnt();
+  telemetrySent = true;
+  uint8_t len = rsSeal(RS_SENDER_RAMP, lastTelemetryFcnt, false, 0, plain, RS_TELEMETRY_LEN, air);
+
   lastTelemetryTx = millis();   // A reply also restarts the 4 Hz timer
   txBusy = true;
-  Radio.Send((uint8_t *)&packet, sizeof(packet));
+  Radio.Send(air, len);
 }
 
 // Does a remote OTHER than this one have control right now?
@@ -272,15 +309,50 @@ void OnRxError(void) {
 
 void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr)
 {
-  if (size == sizeof(CommandPacket) && payload[0] == 0xB2)
+  if (size == RS_HEADER_LEN + RS_COMMAND_LEN + RS_TAG_LEN &&
+      payload[0] > RS_SENDER_REMOTE && payload[0] <= RS_SENDER_REMOTE + MAX_REMOTES)
   {
-    CommandPacket cmd;
-    memcpy(&cmd, payload, sizeof(cmd));
+    uint8_t idx = payload[0] - RS_SENDER_REMOTE - 1;
+    uint32_t fcnt = rsPacketFcnt(payload);
+    unsigned long now = millis();
+    uint8_t plain[RS_COMMAND_LEN];
 
-    if (cmd.remoteId >= 1 && cmd.remoteId <= MAX_REMOTES)
+    // Signed with our key, together with one of the telemetry counters we sent recently? A command recorded earlier
+    // and played back now matches none of them (Radio_Security.ino).
+    bool ok = false;
+    for (uint8_t back = 0; telemetrySent && back < COMMAND_ECHO_WINDOW && !ok; back++)
+      ok = rsOpen(payload, size, true, lastTelemetryFcnt - back, plain);
+    if (!ok)
     {
-      uint8_t idx = cmd.remoteId - 1;
-      unsigned long now = millis();
+      loraStats.rxBadKey++;   // A remote with a different bind phrase, or not one of ours
+      Radio.Rx(0);
+      return;
+    }
+
+    // Frame counters only go up. A remote that was silent for a while may have been erased and reflashed (its counter
+    // starts again), so forget its counter then. That's safe: a played-back packet must also carry a recent ramp counter.
+    if (remoteLastSeen[idx] == 0 || (now - remoteLastSeen[idx]) > REMOTE_TIMEOUT_MS)
+      remoteHaveFcnt[idx] = false;
+    if (remoteHaveFcnt[idx] && (int32_t)(fcnt - remoteLastFcnt[idx]) <= 0)
+    {
+      loraStats.rxReplay++;   // Already had this one (or a newer one): played back
+      Radio.Rx(0);
+      return;
+    }
+    remoteLastFcnt[idx] = fcnt;
+    remoteHaveFcnt[idx] = true;
+
+    CommandPacket cmd;
+    cmd.packetId = 0xB2;
+    cmd.remoteId = idx + 1;
+    cmd.seq = plain[0];
+    cmd.targetHeightIndex = (int8_t)plain[1];
+    cmd.waterCommand = (int8_t)plain[2];
+    cmd.remoteControlMode = plain[3];
+    cmd.bypassCommand = (int8_t)plain[4];
+    cmd.txCounter = (uint8_t)fcnt;
+
+    {
 
       // A remote we haven't heard from in a while may have rebooted, so forget its old sequence number
       if (remoteLastSeen[idx] == 0 || (now - remoteLastSeen[idx]) > REMOTE_TIMEOUT_MS)
@@ -303,14 +375,14 @@ void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr)
       remoteRxCount[idx]++;
       if (remoteHaveCounter[idx])
       {
-        uint8_t gap = (uint8_t)(cmd.txCounter - remoteLastCounter[idx] - 1);   // Packets this remote sent that we never heard
+        uint32_t gap = fcnt - remoteLastCounter[idx] - 1;   // Packets this remote sent that we never heard
         if (gap < 20)   // Anything bigger is a reboot or a long outage, not packet loss
         {
           remoteLost[idx] += gap;
           loraStats.lost += gap;
         }
       }
-      remoteLastCounter[idx] = cmd.txCounter;
+      remoteLastCounter[idx] = fcnt;
       remoteHaveCounter[idx] = true;
 
       uint8_t result = ACK_OK;
@@ -421,6 +493,9 @@ void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr)
     }
   }
 
-  loraStats.rxBad++;   // Not a valid command
+  if ((size == 8 && payload[0] == 0xB2) || (size == 19 && payload[0] == 0xA1))
+    loraStats.rxOldFw++;   // Unencrypted packet from older firmware: reflash that unit
+  else
+    loraStats.rxBad++;     // Not a valid command
   Radio.Rx(0);   // Keep listening
 }

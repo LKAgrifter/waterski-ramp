@@ -35,6 +35,11 @@ browser flasher instead** (see the main README) - no setup needed.
 - 📷 `images/06-board-port.png`
 
 ## 6. Upload
+- **Bind phrase:** a board flashed from the web flasher keeps its phrase when you upload from the IDE, so you don't
+  need to do anything. For a board that has never been web-flashed, create a file named `bind_phrase.h` in the
+  sketch folder containing `#define BIND_PHRASE "your phrase"` (the same phrase as the ramp and the other remotes).
+  That file is ignored by git: **never commit it or put the phrase in the code**, the repository is public.
+  Without either, the board is unbound ("Bind: NONE (open)" on its NETWORK page).
 - Click **Upload** (arrow button). Wait for "Done uploading".
 - 📷 `images/07-upload-done.png`
 - If it won't connect: hold the board's PRG button while plugging it in.

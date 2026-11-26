@@ -24,18 +24,19 @@ int digitalRead(uint8_t p){ return pinv[p]; }
 void physics(){}
 #endif
 #include SRC
+#include "radio_test.h"
 static int fails=0;
 #define CHECK(c,msg) do{ if(!(c)){printf("FAIL: %s\n",msg);fails++;} else printf("ok:   %s\n",msg);}while(0)
 
 #ifndef REMOTE
 static uint8_t seqs[5]={0,10,40,70,100}, ctrs[5];
-TelemetryPacket lastReply(){ TelemetryPacket t; memcpy(&t,Radio.last,sizeof t); return t; }
+TelemetryPacket lastReply(){ TelemetryPacket t; memset(&t,0,sizeof t); sentTelemetry(t); return t; }
 static int txSeen=0;
 void run(long ms){ for(long i=0;i<ms;i++){ g_millis++; loop(); if(Radio.sent!=txSeen){ txSeen=Radio.sent; OnTxDone(); } physics(); } }
 // A remote's packet; returns the ramp's reply (ackResult)
 uint8_t send(uint8_t id, int8_t height, int8_t water=-1, uint8_t mode=0, bool newSeq=true){
   CommandPacket c; c.remoteId=id; c.seq=newSeq?++seqs[id]:0; c.targetHeightIndex=height; c.waterCommand=water; c.remoteControlMode=mode; c.bypassCommand=-1; c.txCounter=ctrs[id]++;
-  OnRxDone((uint8_t*)&c,sizeof c,-60,7); run(5); TelemetryPacket t=lastReply(); return (t.ackRemoteId==id) ? t.ackResult : 255; }
+  rxCommand(c); run(5); TelemetryPacket t=lastReply(); return (t.ackRemoteId==id) ? t.ackResult : 255; }
 uint8_t ownerFlag(){ run(260); return (uint8_t)(lastReply().flags>>FLAG_OWNER_SHIFT)&7; }
 bool runUntilStopped(int maxMs){ int quiet=0; for(int i=0;i<maxMs;i++){ run(1); if(!state.Motor_Running && !state.DirectionChangePending && !state.MotorPowerPending) quiet++; else quiet=0; if(quiet>500) return true; } return false; }
 void holdMenu(){ pinv[38]=0; run(700); pinv[38]=1; run(60); }
@@ -89,8 +90,8 @@ int main(){
   setup();
   static uint8_t ctr=0; uint8_t owner=0, ackSeq=0, ackRes=0, ackId=0;
   auto run=[&](long ms){ for(long i=0;i<ms;i++){ g_millis++;
-      if(Radio.sent){ CommandPacket c; memcpy(&c,Radio.last,sizeof c); Radio.sent=0; if(c.seq){ ackId=c.remoteId; ackSeq=c.seq; ackRes=ACK_BUSY; } else if(c.remoteControlMode){ ackId=c.remoteId; ackSeq=0; ackRes=ACK_BUSY; } }
-      if(g_millis%250==0){ TelemetryPacket t; memset(&t,0,sizeof t); ((uint8_t*)&t)[0]=0xA1; t.flags=(uint8_t)(owner<<FLAG_OWNER_SHIFT); t.ackRemoteId=ackId; t.ackSeq=ackSeq; t.ackResult=ackRes; ackId=0; t.txCounter=ctr++; OnRxDone((uint8_t*)&t,sizeof t,-60,7); }
+      if(Radio.sent){ CommandPacket c; bool got=sentCommand(c); Radio.sent=0; if(got){ if(c.seq){ ackId=c.remoteId; ackSeq=c.seq; ackRes=ACK_BUSY; } else if(c.remoteControlMode){ ackId=c.remoteId; ackSeq=0; ackRes=ACK_BUSY; } } }
+      if(g_millis%250==0){ TelemetryPacket t; memset(&t,0,sizeof t); ((uint8_t*)&t)[0]=0xA1; t.flags=(uint8_t)(owner<<FLAG_OWNER_SHIFT); t.ackRemoteId=ackId; t.ackSeq=ackSeq; t.ackResult=ackRes; ackId=0; t.txCounter=ctr++; rxTelemetry(t); }
       loop(); } };
   run(6000);
   CHECK(state.Remote_Connected && REMOTE_ID==1,"(remote 1, ramp online)");

@@ -19,3 +19,6 @@ __pycache__/
 *.kicad_prl
 .history/
 fp-info-cache
+
+# Your radio bind phrase (Radio_Security.ino). Never commit it: this repository is public.
+bind_phrase.h

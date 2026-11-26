@@ -7,6 +7,7 @@ static int pinv[64]; static int outv[64]; static int adc=3200;
 RadioT Radio;
 void pinMode(uint8_t,uint8_t){} void digitalWrite(uint8_t p,uint8_t v){outv[p]=v;} int digitalRead(uint8_t p){return pinv[p];} int analogRead(uint8_t){return adc;}
 #include SRC
+#include "radio_test.h"
 static int fails=0;
 #define CHECK(c,msg) do{ if(!(c)){printf("FAIL: %s\n",msg);fails++;} else printf("ok:   %s\n",msg);}while(0)
 
@@ -26,10 +27,10 @@ void rampHears(const CommandPacket &c){
   if(!dropAcks){ ackId=c.remoteId; ackSeq=c.seq; }
 }
 void run(int ms){ for(int i=0;i<ms;i++){ g_millis++;
-    if(Radio.sent!=seenSent){ seenSent=Radio.sent; CommandPacket c; memcpy(&c,Radio.last,sizeof(c)); if(rampOnline) rampHears(c); }
+    if(Radio.sent!=seenSent){ seenSent=Radio.sent; CommandPacket c; sentCommand(c); if(rampOnline) rampHears(c); }
     if(rampOnline && g_millis%250==0){ TelemetryPacket t; memset(&t,0,sizeof(t)); ((uint8_t*)&t)[0]=0xA1;
       t.waterRelay=rampWater; t.waterRemainMin=rampWater?60:0; t.ackRemoteId=ackId; t.ackSeq=ackSeq; ackId=0; ackSeq=0; t.txCounter=telCtr++;
-      OnRxDone((uint8_t*)&t,sizeof(t),-60,7); }
+      rxTelemetry(t,-60,7); }
     loop(); } }
 void press(int pin,int ms=80){ pinv[pin]=0; run(ms); pinv[pin]=1; run(80); }
 void holdMenu(){ pinv[38]=0; run(1100); pinv[38]=1; run(60); }

@@ -444,6 +444,7 @@ void buildNetworkLines()
     unsigned long now = millis();
 
     addLine("Remotes: %u/%u online", remotesConnected, MAX_REMOTES);
+    addLine("%s", bindText());
     addLine("RSSI %d  SNR %d", loraStats.rssi, loraStats.snr);
 
     uint32_t total = loraStats.rxOk + loraStats.lost;
@@ -452,6 +453,10 @@ void buildNetworkLines()
     addLine("Lost: %lu (%.1f%%)", (unsigned long)loraStats.lost, lossPct);
     addLine("Bad %lu  CRC %lu", (unsigned long)loraStats.rxBad, (unsigned long)loraStats.rxCrcErr);
     addLine("TX %lu  TO %lu", (unsigned long)loraStats.txOk, (unsigned long)loraStats.txTimeout);
+    addLine("Bad key %lu", (unsigned long)loraStats.rxBadKey);
+    addLine("Replayed: %lu", (unsigned long)loraStats.rxReplay);
+    if (loraStats.rxOldFw)
+        addLine("Old firmware heard: %lu", (unsigned long)loraStats.rxOldFw);
 
     for (uint8_t i = 0; i < MAX_REMOTES; i++)
     {
