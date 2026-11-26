@@ -62,6 +62,7 @@ TESTCASES = [
     ('remote_manual_flag_remote','remote_manual_flag.cpp',      'remote',     ['REMOTE'], False),
     ('screen_awake_moving_ramp', 'screen_awake_moving.cpp',     'ramp',       [], False),
     ('screen_awake_moving_remote','screen_awake_moving.cpp',    'remote',     ['REMOTE'], False),
+    ('motor_usage',              'motor_usage.cpp',             'ramp',       ['ZONE_MM=8'], False),
     ('sim_mode',                 'sim_mode.cpp',                'ramp_sim',   ['SIM'], False),
     ('sim_mode_boot_no_sensor',  'sim_mode.cpp',                'ramp_sim',   ['SIM', 'NOSENSOR'], False),
     ('sim_mode_off',             'sim_mode.cpp',                'ramp',       [], False),

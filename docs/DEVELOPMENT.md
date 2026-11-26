@@ -107,6 +107,10 @@ height it just left drives back to it.
   means it's too long.
 - **Per-step motor timeout** `MOTOR_STEP_TIMEOUT_MS` (100 s): restarts at every sensor reached. Diagnostics shows
   the measured "Step" time; set ~1.5x the slowest step.
+- **Motor usage counters** (`MotorUsage motorUse`, bottom of the ramp's Diagnostics list): cycles (= motor runs,
+  split height / manual and up / down), run time, height travelled and the average timed step. Saved in Preferences
+  (`Use*` keys): cycles and the split when the motor starts, the rest when it stops (`motorUsageStart/Stop`,
+  `motorUsageArrived/Step` from `updateHeight`). Test: `tests/host/tests/motor_usage.cpp`.
 - **Missed-sensor stop:** an automatic move that reaches a sensor *beyond* its target stops and flags the target
   sensor (a dead sensor would otherwise make it bounce between neighbours).
 - Manual drive soft limits use the end sensors directly (`limits[0]` / `limits[3]` active).

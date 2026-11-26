@@ -86,6 +86,7 @@ void motorStop()
     prefs.putFloat("LastHeight", state.Ramp_Height);
     prefs.putBool("MotorUp",state.Motor_Direction_Up);
     state.MotorStoppedAt = millis();   // The reversal delay counts from here
+    motorUsageStop();
   }
 
   state.localOverrideActive = false; // Once the ramp finishes its move, allow remote control again, always
@@ -235,10 +236,72 @@ void runMotor()
     prefs.putBool("Moving", true); //Save to flash that the ramp is moving, so if the power goes out, we know it was between heights!
     prefs.putFloat("LastHeight", state.Ramp_Height); //Store the last located ramp height
     prefs.putBool("MotorUp",state.Motor_Direction_Up); //Store the motor direction (we know if it's above or below last height)
+    motorUsageStart();
   }
 
   state.Motor_Running = true;  //Since safety checks passed, we're good to go!
   setRelay(Power_Relay, true);
+}
+
+// ---------------------------------------------------------------------------
+// Motor usage counters (struct MotorUsage in the main tab). Flash keys are at most 15 characters.
+// ---------------------------------------------------------------------------
+void loadMotorUsage()
+{
+  motorUse.cycles     = prefs.getULong("UseCycles", 0);
+  motorUse.autoRuns   = prefs.getULong("UseAuto", 0);
+  motorUse.manualRuns = prefs.getULong("UseManual", 0);
+  motorUse.upRuns     = prefs.getULong("UseUp", 0);
+  motorUse.downRuns   = prefs.getULong("UseDown", 0);
+  motorUse.halfSteps  = prefs.getULong("UseHalfSteps", 0);
+  motorUse.runMs      = prefs.getULong64("UseRunMs", 0);
+  motorUse.stepCount  = prefs.getULong("UseStepN", 0);
+  motorUse.stepMsSum  = prefs.getULong64("UseStepMs", 0);
+}
+
+// The motor just got power (runMotor). Counted now, so a run cut short by a power failure still counts.
+void motorUsageStart()
+{
+  motorUse.runStart = millis();
+  if (motorUse.lastArrival < 4.0f && !diag.powerLoss) motorUse.lastArrival = state.Ramp_Height;   // Where travel counts from
+  motorUse.cycles++;
+  prefs.putULong("UseCycles", motorUse.cycles);
+
+  if (state.Control_Mode == MODE_MANUAL) prefs.putULong("UseManual", ++motorUse.manualRuns);
+  else                                   prefs.putULong("UseAuto", ++motorUse.autoRuns);
+
+  if (state.Motor_Direction_Up) prefs.putULong("UseUp", ++motorUse.upRuns);
+  else                          prefs.putULong("UseDown", ++motorUse.downRuns);
+}
+
+// The motor just stopped (motorStop): add the run time and save what was counted during the run
+void motorUsageStop()
+{
+  motorUse.runMs += millis() - motorUse.runStart;
+  prefs.putULong64("UseRunMs", motorUse.runMs);
+  prefs.putULong("UseHalfSteps", motorUse.halfSteps);
+  prefs.putULong("UseStepN", motorUse.stepCount);
+  prefs.putULong64("UseStepMs", motorUse.stepMsSum);
+}
+
+// Reached a height sensor while moving (updateHeight). Only height actually changed counts: coming back to the sensor
+// it just left (a reversal) adds nothing. Saved at the stop.
+void motorUsageArrived(float height)
+{
+  if (motorUse.lastArrival >= 4.0f)   // (Unknown start, e.g. after CAL REQUIRED: travel counts from this sensor on)
+  {
+    float diff = height - motorUse.lastArrival;
+    if (diff < 0.0f) diff = -diff;
+    motorUse.halfSteps += (uint32_t)(diff * 2.0f + 0.5f);
+  }
+  motorUse.lastArrival = height;
+}
+
+// A clean sensor-to-sensor step was timed (the same measurement as "Step" on the Diagnostics page)
+void motorUsageStep(unsigned long ms)
+{
+  motorUse.stepCount++;
+  motorUse.stepMsSum += ms;
 }
 
 //Ramp Motion and Failsafes
