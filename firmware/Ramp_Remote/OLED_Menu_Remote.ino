@@ -219,9 +219,9 @@ void drawRadioStartScreen()
 
 void drawBootScreen()
 {
-  if(millis() < 5000)
+  static unsigned long animStart = millis();   // The jump animation starts with the boot screen ...
+  if(!bootAnimationDone(millis() - animStart))   // ... and the boot screen lasts one jump (Boot_Animation.ino)
   {
-    static unsigned long animStart = millis();   // The jump animation starts with the boot screen
     display.setFont(ArialMT_Plain_10);
     display.setTextAlignment(TEXT_ALIGN_LEFT);
     display.clear();

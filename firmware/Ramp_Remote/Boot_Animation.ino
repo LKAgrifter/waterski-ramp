@@ -1,5 +1,6 @@
 // Boot screen animation: a skier on a tow rope crosses the water, rides up the jump ramp, flies, and lands with a
-// splash, once every BA_PERIOD_MS. Drawn under the boot screen's two text lines (drawBootScreen in the OLED tab).
+// splash. One jump: the boot screen ends when the skier has gone off the right edge (bootAnimationDone). Drawn under
+// the boot screen's two text lines (drawBootScreen in the OLED tab).
 // This file is an identical copy in both sketches (like Games.ino): edit one, copy it to the other.
 // Only lines and filled rectangles are used, the shapes the simulator's screen draws too.
 
@@ -12,7 +13,15 @@ const int   BA_START_X     = -14;     // The skier starts off the left edge of t
 const float BA_SPEED       = 62.0f;   // ... and crosses it at this speed (pixels per second)
 const float BA_POP         = 63.0f;   // Upward speed at take-off (pixels per second)
 const float BA_SPLASH_S    = 0.45f;   // How long the landing splash lasts (seconds)
-const unsigned long BA_PERIOD_MS = 2600;   // One jump, from the left edge to off the right edge
+const int   BA_END_X       = 137;     // The skier (and the spray behind the skis) is off the right edge from here
+// How long the jump takes, from coming in at the left edge to gone off the right edge (~2.4 s)
+const unsigned long BA_DURATION_MS = (unsigned long)((BA_END_X - BA_START_X) * 1000.0f / BA_SPEED);
+
+// True once the jump is over (ms after the animation started): the boot screen then hands over to HOME
+bool bootAnimationDone(unsigned long ms)
+{
+  return ms >= BA_DURATION_MS;
+}
 
 // Draw one line of the skier: (x0, y0) to (x1, y1) in the skier's own pixels (x forward, y up from the feet),
 // turned by the skis' angle (c = cos, s = sin) and placed with the feet at (fx, fy) on the screen.
@@ -50,7 +59,7 @@ float baRampY(float x)
 // One frame of the animation, ms after it started
 void drawBootAnimation(unsigned long ms)
 {
-  float t = (ms % BA_PERIOD_MS) / 1000.0f;   // Seconds into this jump
+  float t = ms / 1000.0f;   // Seconds into the jump
 
   // Water: short ripples, drifting left past the skier
   int drift = (int)(ms / 60) % 8;

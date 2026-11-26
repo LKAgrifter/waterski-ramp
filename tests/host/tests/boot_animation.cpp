@@ -1,6 +1,6 @@
 // The boot screen's ramp-jump animation (Boot_Animation.ino): the skier moves, really jumps (the head rises well
 // above where it rides on the water), stays clear of the two text lines, and the boot screen still hands over to
-// HOME after 5 s. Ramp and (-DREMOTE) remote.
+// HOME as soon as the skier has gone off the right edge (one jump). Ramp and (-DREMOTE) remote.
 #include "Arduino.h"
 #include "LoRaWan_APP.h"
 #include <set>
@@ -35,17 +35,20 @@ int main(){
 #endif
   setup();
   std::set<std::string> frames; std::string bootText;
-  int lowest=-1000, highest=1000; std::string after;
+  int lowest=-1000, highest=1000; std::string after, lastBoot; unsigned long bootFrom=0, homeAt=0;
   while(g_millis<7000){
     g_millis++; loop();
-    if(g_millis<4900){
-      if(!g_displayShapes.empty()) frames.insert(g_displayShapes);
-      if(bootText.empty() && !g_displayShapes.empty()) bootText=g_displayText;
+    bool boot=g_displayText.find("Initializing")!=std::string::npos;
+    if(boot){
+      if(!bootFrom) bootFrom=g_millis;
+      frames.insert(g_displayShapes); lastBoot=g_displayShapes;
+      if(bootText.empty()) bootText=g_displayText;
       int y=headY(g_displayShapes);
       if(y>-1000){ if(y>lowest) lowest=y; if(y<highest) highest=y; }
-    }
+    } else if(bootFrom && !homeAt && !g_displayText.empty()) homeAt=g_millis;
   }
   after=g_displayText;
+  printf("      boot screen from %lu ms to %lu ms\n",bootFrom,homeAt);
   printf("      boot text: %s   %zu different frames, head from y=%d up to y=%d\n",bootText.c_str(),frames.size(),lowest,highest);
 #ifdef REMOTE
   CHECK(bootText=="Ramp-O-Matic Initializing|Remote Controller|","the remote's boot screen keeps its two text lines");
@@ -56,6 +59,8 @@ int main(){
   CHECK(lowest-highest>=12,"the skier jumps: the head rises well above where it rides on the water");
   CHECK(highest>=25,"the skier stays below the text lines (y 0 to 24)");
   CHECK(lowest<=63-12,"the skier is drawn on the screen, above the water");
-  CHECK(after.find("Initializing")==std::string::npos && !after.empty(),"after 5 s the boot screen hands over to HOME");
+  CHECK(headY(lastBoot)==-1000,"the boot screen's last frame has the skier gone off the right edge");
+  CHECK(homeAt>bootFrom+2000 && homeAt<bootFrom+2700,"the boot screen lasts one jump (~2.4 s), then hands over to HOME");
+  CHECK(after.find("Initializing")==std::string::npos && !after.empty(),"HOME stays up afterwards");
   printf("%s (%d failures)\n",fails?"SOME FAILED":"ALL PASSED",fails); return fails;
 }
