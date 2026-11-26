@@ -221,10 +221,13 @@ void drawBootScreen()
 {
   if(millis() < 5000)
   {
+    static unsigned long animStart = millis();   // The jump animation starts with the boot screen
     display.setFont(ArialMT_Plain_10);
+    display.setTextAlignment(TEXT_ALIGN_LEFT);
     display.clear();
-    display.drawString(0, 0, "Ramp-O-Matic Initiallizing");
-    display.drawString(0, 15, "Remote Controller");
+    display.drawString(0, 0, "Ramp-O-Matic Initializing");
+    display.drawString(0, 12, "Remote Controller");
+    drawBootAnimation(millis() - animStart);   // Boot_Animation.ino
     display.display();
     return;
   }

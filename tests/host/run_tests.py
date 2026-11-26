@@ -73,6 +73,8 @@ TESTCASES = [
     ('water_led_remote',         'water_led.cpp',               'remote',     ['REMOTE'], False),
     ('radio_start_screen_ramp',  'radio_start_screen.cpp',      'ramp',       [], False),
     ('radio_start_screen_remote','radio_start_screen.cpp',      'remote',     ['REMOTE'], False),
+    ('boot_animation_ramp',      'boot_animation.cpp',          'ramp',       [], False),
+    ('boot_animation_remote',    'boot_animation.cpp',          'remote',     ['REMOTE'], False),
     ('sim_mode',                 'sim_mode.cpp',                'ramp_sim',   ['SIM'], False),
     ('sim_mode_boot_no_sensor',  'sim_mode.cpp',                'ramp_sim',   ['SIM', 'NOSENSOR'], False),
     ('sim_mode_off',             'sim_mode.cpp',                'ramp',       [], False),
@@ -187,6 +189,11 @@ def main():
     g2 = open(os.path.join(FW, 'Ramp_Remote', 'Games.ino')).read()
     if g1 != g2:
         print(color('  Games.ino differs between Ramp_Control and Ramp_Remote - they must be identical copies.', '31'))
+        failed += 1
+    b1 = open(os.path.join(FW, 'Ramp_Control', 'Boot_Animation.ino')).read()
+    b2 = open(os.path.join(FW, 'Ramp_Remote', 'Boot_Animation.ino')).read()
+    if b1 != b2:
+        print(color('  Boot_Animation.ino differs between Ramp_Control and Ramp_Remote - they must be identical copies.', '31'))
         failed += 1
     s1 = open(os.path.join(FW, 'Ramp_Control', 'Radio_Security.ino')).read()
     s2 = open(os.path.join(FW, 'Ramp_Remote', 'Radio_Security.ino')).read()

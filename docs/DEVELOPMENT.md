@@ -179,7 +179,8 @@ and auto-generates function prototypes. That auto-generation is unreliable, so:
   arguments, need a hand-written forward declaration in the main tab (see the "Forward declarations" block).
 - Constants and globals used by several tabs live in the main tab.
 - Don't use `namespace` or file-scope `static` functions across tabs.
-- `Games.ino` and `Radio_Security.ino` must stay identical copies in both sketch folders (the tests check this).
+- `Games.ino`, `Radio_Security.ino` and `Boot_Animation.ino` (the boot screen's ramp-jump animation) must stay
+  identical copies in both sketch folders (the tests check this).
 
 ## Tests
 
