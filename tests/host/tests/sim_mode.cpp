@@ -1,7 +1,10 @@
 // Simulation mode (SIM_MODE): sensors from USB "@S" lines, relays reported as "@R" lines, real relay pins left off.
 //   -DSIM            build with SIM_MODE = true (variant ramp_sim): the virtual ramp is driven ONLY by the @R lines
 //   -DSIM -DNOSENSOR the PC sends nothing at boot: CAL REQUIRED, and setup() doesn't hang waiting
-//   (neither)        normal build: no simulator traffic at all, relays and sensors on their pins as usual
+//   -DSIM -DHANDSHAKE the NORMAL build (variant ramp), switched to simulation mode by the page answering "@SIM ON"
+//                    to its "@SIM?" at start-up: everything as with -DSIM
+//   (neither)        normal build, no answer at start-up: relays and sensors on their pins as usual; it only
+//                    answers the page with "@NORMAL" (so the page resets it to ask again)
 #include "Arduino.h"
 #include "LoRaWan_APP.h"
 static int pinv[64]; static int outv[64]; static int adc=3200;
@@ -23,7 +26,7 @@ static int fails=0;
 #define CHECK(c,msg) do{ if(!(c)){printf("FAIL: %s\n",msg);fails++;} else printf("ok:   %s\n",msg);}while(0)
 
 // ---- the PC side: parse what the board prints ----
-static int rPow=0,rDir=0,rPump=0, rLines=0, helloCount=0, helloVer=-1, tLines=0, otherAt=0, dirUnderPower=0;
+static int rPow=0,rDir=0,rPump=0, rLines=0, helloCount=0, helloVer=-1, tLines=0, otherAt=0, dirUnderPower=0, simAsks=0, normalCount=0, normalVer=-1;
 static std::string lastT;
 void pumpSerial(){
   size_t nl;
@@ -33,6 +36,8 @@ void pumpSerial(){
     if(l.rfind("@R ",0)==0 && sscanf(l.c_str(),"@R %d %d %d",&a,&b,&c)==3){ if(b!=rDir && (rPow||a)) dirUnderPower++; rPow=a; rDir=b; rPump=c; rLines++; }
     else if(l.rfind("@HELLO ",0)==0){ helloCount++; helloVer=atoi(l.c_str()+7); }
     else if(l.rfind("@T ",0)==0){ tLines++; lastT=l+" "; }
+    else if(l=="@SIM?") simAsks++;
+    else if(l.rfind("@NORMAL ",0)==0){ normalCount++; normalVer=atoi(l.c_str()+8); }
     else if(!l.empty() && l[0]=='@') otherAt++;
   }
 }
@@ -59,10 +64,18 @@ int main(){
   for(int i=0;i<64;i++) pinv[i]=1;
   g_serialCapture=true;
 #ifdef SIM
+#ifdef HANDSHAKE
+  g_serialIn="@SIM ON\n";         // the page answers the board's "@SIM?" at start-up
+#endif
 #ifndef NOSENSOR
-  g_serialIn="@S 1\n";            // the page is already sending: parked on the 4 ft sensor
+  g_serialIn+="@S 1\n";           // the page is already sending: parked on the 4 ft sensor
 #endif
   setup(); pumpSerial();
+#ifdef HANDSHAKE
+  CHECK(simAsks==1 && simActive,"normal build: asks @SIM? at start-up, and the page's @SIM ON switches it to simulation mode");
+#else
+  CHECK(simAsks==0,"SIM_MODE build: always in simulation mode, doesn't ask");
+#endif
   CHECK(helloCount==1 && helloVer==SIM_PROTOCOL_VERSION,"boot: sends @HELLO with the protocol version");
   CHECK(rLines>=1 && rPow==0 && rDir==0 && rPump==0,"boot: reports all relays off");
 #ifdef NOSENSOR
@@ -99,19 +112,26 @@ int main(){
   g_serialIn+="@S 6\r\n"; run(1); CHECK(simSensorMask==6,"a good line after them (CRLF ending) is accepted");
   g_serialIn+="@S 2\n"; feeding=true; run(100);
   int h0=helloCount; g_serialIn+="@HELLO?\n"; run(5); CHECK(helloCount==h0+1,"@HELLO? gets a fresh @HELLO");
+  g_serialIn+="@SIM ON\n"; run(5); CHECK(helloCount==h0+2 && normalCount==0 && simActive,"a repeated @SIM ON just gets @HELLO again");
 
   // Manual drive at the ramp works too (MANUAL page, hold UP)
   goPage(SCREEN_HEIGHT); pinv[7]=0; run(5000); pinv[7]=1; run(2000);
   CHECK(pos>4.5+ZONE && !state.Motor_Running && rPow==0,"manual UP on the MANUAL page moves the virtual ramp, and stops on release");
 #endif
 #else
-  setup(); run(6000); pumpSerial();
+  setup(); pumpSerial();
+  CHECK(simAsks==1 && !simActive,"normal build: asks @SIM? at start-up and, with no answer, starts normally");
+  run(6000); pumpSerial();
   CHECK(state.Ramp_Height==4.0f && !diag.powerLoss,"normal build: boots on the 4 ft sensor pin");
   pressH(1960); CHECK(runUntilStopped(400000) && onSw(5.0),"normal build: 4 -> 5 ft on the real relay pins");
   CHECK(relayPinOnWrites>0 && sensorPinReads>0,"normal build: relays switched and sensors read on their pins");
-  CHECK(helloCount==0 && rLines==0 && tLines==0 && otherAt==0,"normal build: no simulator traffic on Serial");
+  CHECK(helloCount==0 && rLines==0 && tLines==0 && otherAt==0 && normalCount==0 && simAsks==1,"normal build: no other simulator traffic on Serial");
   g_serialIn+="@S 0\n@HELLO?\n"; run(1000); pumpSerial();
-  CHECK(helloCount==0 && limitMask()==4,"normal build: ignores @ lines from the PC");
+  CHECK(helloCount==0 && limitMask()==4,"normal build: ignores sensor lines from the PC");
+  CHECK(normalCount==1 && normalVer==SIM_PROTOCOL_VERSION,"normal build: answers @HELLO? with @NORMAL <version>");
+  g_serialIn+="@SIM ON\n"; run(1000); pumpSerial();
+  CHECK(!simActive && normalCount==2,"normal build: a @SIM ON after start-up is too late: @NORMAL again, stays normal");
+  pressH(2610); CHECK(runUntilStopped(400000) && onSw(4.5),"normal build: still drives the real relay pins afterwards");
 #endif
   printf("%s (%d failures)\n",fails?"SOME FAILED":"ALL PASSED",fails); return fails;
 }
