@@ -8,9 +8,9 @@
 //   3. Slalom Run   Flappy-style: steer the skier through the buoy gates.    hold UP / DOWN to steer
 //   4. Ramp Jump    Pick a ramp height (4.0 - 5.5 ft), then stop the power   UP/DOWN pick, ENTER go, UP/ENTER stop
 //                   meter in the sweet spot. Three jumps, best total wins.
-//   5. Trick Combo  Simon-says: watch the trick combo, then repeat it.       UP = jump, ENTER = spin, DOWN = duck
+//   5. Trick Combo  Simon-says: watch the trick combo, then repeat it.       UP = jump, MENU = spin, DOWN = duck
 //
-//   In the menu: UP / DOWN pick a game, ENTER (tap) plays it.
+//   In the menu: UP / DOWN pick a game, MENU (tap) plays it.
 //   In any game: BACK (tap) returns to this menu.   HOLD ENTER (as on every other page) leaves the games entirely.
 //
 // Self-contained: it only reads the four AUX buttons and draws on `display`. It never touches the motor, water, radio,
@@ -33,7 +33,7 @@
 //    (about 12 would mean the games are being throttled by the screen refresh). Set GM_DEBUG to false when you are done.
 // ===========================================================================
 
-constexpr bool    GM_DEBUG = true;
+constexpr bool    GM_DEBUG = false;
 constexpr uint8_t GM_COUNT = 5;
 
 constexpr uint8_t GM_B_UP = 0;
@@ -163,6 +163,14 @@ void gmHeader(const char *left, const char *right)
   display.drawString(127, 0, right);
   display.setTextAlignment(TEXT_ALIGN_LEFT);
   display.drawLine(0, 12, 127, 12);
+}
+
+// Text centred on x (the screen is 128 wide, so x = 64 is the middle)
+void gmCentre(int x, int y, const char *text)
+{
+  display.setTextAlignment(TEXT_ALIGN_CENTER);
+  display.drawString(x, y, text);
+  display.setTextAlignment(TEXT_ALIGN_LEFT);
 }
 
 // Header for the games that count points: "<label> 12"  /  "HI 40"
@@ -1119,7 +1127,7 @@ struct TrickData
   unsigned long flashAt;
   unsigned long lastInput;
   unsigned long deadSince;
-  uint8_t       seq[TC_MAX];  // 0 = jump, 1 = spin, 2 = duck
+  uint8_t       seq[TC_MAX];  // 0 = jump (UP), 1 = spin (MENU), 2 = duck (DOWN)
 };
 
 TrickData tc;
@@ -1185,36 +1193,58 @@ void tcPress(uint8_t trick)
   }
 }
 
-// Pictogram of a trick, centred around x = 64
-void tcPicto(uint8_t trick)
+// Pictogram of a trick, centred around x = cx (it is about 68 px wide)
+void tcPicto(uint8_t trick, int cx)
 {
-  display.drawLine(30, 57, 98, 57);    // Water
+  display.drawLine(cx - 34, 57, cx + 34, 57);    // Water
 
   if (trick == 0)          // JUMP: skier in the air, spray below
   {
-    gmSkier(57, 40, true);
-    display.drawLine(52, 52, 55, 55);
-    display.drawLine(70, 55, 73, 52);
+    gmSkier(cx - 7, 40, true);
+    display.drawLine(cx - 12, 52, cx - 9, 55);
+    display.drawLine(cx + 6, 55, cx + 9, 52);
   }
   else if (trick == 1)     // SPIN: skier inside a ring
   {
-    gmSkier(57, 46, true);
+    gmSkier(cx - 7, 46, true);
     for (int i = 0; i < 12; i++)
     {
       float a0 = (float)i * 0.5236f;
       float a1 = (float)(i + 1) * 0.5236f;
-      display.drawLine(62 + (int)(14.0f * cosf(a0)), 36 + (int)(14.0f * sinf(a0)),
-                       62 + (int)(14.0f * cosf(a1)), 36 + (int)(14.0f * sinf(a1)));
+      display.drawLine(cx - 2 + (int)(14.0f * cosf(a0)), 36 + (int)(14.0f * sinf(a0)),
+                       cx - 2 + (int)(14.0f * cosf(a1)), 36 + (int)(14.0f * sinf(a1)));
     }
   }
-  else                     // DUCK: skier crouched low
+  else                     // DUCK: skier crouched low under a bar
   {
-    gmSkier(57, 55, false);
-    display.drawLine(52, 30, 72, 30);
-    display.drawLine(62, 30, 62, 35);
+    gmSkier(cx - 7, 55, false);
+    display.drawLine(cx - 12, 30, cx + 8, 30);
+    display.drawLine(cx - 2, 30, cx - 2, 35);
   }
 }
 
+// A trick: the pictogram on the left, its name in big letters on the right
+void tcShowTrick(uint8_t trick)
+{
+  tcPicto(trick, 36);
+  display.setFont(ArialMT_Plain_16);
+  gmCentre(98, 30, tcNames[trick]);
+  display.setFont(ArialMT_Plain_10);
+}
+
+// Which button does which trick, in three columns: UP / MENU / DOWN over JUMP / SPIN / DUCK
+void tcLegend(int y)
+{
+  gmCentre(21, y, "UP");
+  gmCentre(64, y, "MENU");
+  gmCentre(107, y, "DOWN");
+  gmCentre(21, y + 11, tcNames[0]);
+  gmCentre(64, y + 11, tcNames[1]);
+  gmCentre(107, y + 11, tcNames[2]);
+}
+
+// All the text is centred with gmCentre (the font is proportional, so guessing an x by hand doesn't centre it), and
+// nothing is wider than the 128 px screen.
 void tcDraw()
 {
   char b[28];
@@ -1225,10 +1255,9 @@ void tcDraw()
 
   if (tc.phase == TC_READY)
   {
-    display.drawString(34, 15, "TRICK COMBO");
-    display.drawString(10, 28, "Watch, then repeat it:");
-    display.drawString(10, 40, "UP=JUMP ENT=SPIN DN=DUCK");
-    display.drawString(34, 52, "UP = start");
+    gmCentre(64, 14, "Watch, then repeat it");
+    tcLegend(27);
+    gmCentre(64, 51, "UP = start");
   }
   else if (tc.phase == TC_SHOW)
   {
@@ -1237,39 +1266,28 @@ void tcDraw()
     unsigned long el = now - tc.phaseStart;
     unsigned long idx = el / slot;
 
-    display.drawString(40, 15, "WATCH...");
-    if (idx < tc.len && (el % slot) < showMs)
-    {
-      tcPicto(tc.seq[idx]);
-      display.drawString(52, 45, tcNames[tc.seq[idx]]);
-    }
+    gmCentre(64, 14, "WATCH...");
+    if (idx < tc.len && (el % slot) < showMs) tcShowTrick(tc.seq[idx]);
   }
   else if (tc.phase == TC_INPUT)
   {
     snprintf(b, sizeof(b), "YOUR TURN  %u/%u", (unsigned)tc.inputIdx, (unsigned)tc.len);
-    display.drawString(24, 15, b);
-    if ((now - tc.flashAt) < 300)
-    {
-      tcPicto(tc.flash);
-      display.drawString(52, 45, tcNames[tc.flash]);
-    }
-    else
-    {
-      display.drawString(10, 40, "UP=JUMP ENT=SPIN DN=DUCK");
-    }
+    gmCentre(64, 14, b);
+    if ((now - tc.flashAt) < 300) tcShowTrick(tc.flash);
+    else                          tcLegend(32);
   }
   else if (tc.phase == TC_NICE)
   {
-    tcPicto(tc.flash);
-    display.drawString(46, 15, "NICE!");
+    gmCentre(64, 14, "NICE!");
+    tcShowTrick(tc.flash);
   }
   else   // TC_DEAD
   {
-    display.drawString(38, 15, "WIPEOUT!");
+    gmCentre(64, 14, "WIPEOUT!");
     snprintf(b, sizeof(b), "Combo of %u", (unsigned)tc.score);
-    display.drawString(34, 28, b);
-    if (tc.newBest) display.drawString(34, 40, "NEW BEST!");
-    if ((now - tc.deadSince) > 700) display.drawString(34, 52, "UP = retry");
+    gmCentre(64, 27, b);
+    if (tc.newBest) gmCentre(64, 39, "NEW BEST!");
+    if ((now - tc.deadSince) > 700) gmCentre(64, 51, "UP = retry");
   }
 
   gmShow();
@@ -1366,7 +1384,7 @@ void gmMenuFrame()
   }
   else
   {
-    snprintf(r, sizeof(r), "ENT = play");
+    snprintf(r, sizeof(r), "MENU = play");
   }
   gmHeader("GAMES", r);
 
