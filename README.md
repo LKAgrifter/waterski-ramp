@@ -28,8 +28,8 @@ together. You never need anything outside the folder to build it.
 No software to install: open the **flasher page** in Chrome or Edge on a computer, plug in the board, click
 *Install*: **https://lkagrifter.github.io/waterski-ramp/**
 
-The page always has the latest firmware from this repo, built automatically. Leave "erase device" unticked when
-updating, so the board keeps its settings.
+The page always has the latest firmware from this repo, built automatically. It never erases the board, so saved
+settings and the board's Heltec radio license are kept.
 
 ## Changing the code: Arduino IDE
 

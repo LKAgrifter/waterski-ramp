@@ -358,7 +358,7 @@ struct Diagnostics
 Diagnostics diag;
 
 // MOTOR USAGE counters, shown at the bottom of the Diagnostics page. Saved in flash, so they survive power cuts and
-// reflashing (only "erase device" in the web flasher clears them). A CYCLE is one motor run, from start to stop: a
+// reflashing (only a full flash erase clears them; the web flasher never erases). A CYCLE is one motor run, from start to stop: a
 // height move is usually one cycle, each press-and-hold on a MANUAL page is one, and a move that reverses is two.
 struct MotorUsage
 {

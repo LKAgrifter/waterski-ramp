@@ -99,7 +99,7 @@ it reports moving over a live link) and always returns to HOME.
 - Heights show **blank** when unknown (never located, CAL REQUIRED, or no ramp link on a remote).
 - **Remote ID** (1-4, must be unique per ramp) is a saved setting on each remote: NETWORK page, hold UP + DOWN
   together 2 s to step it. Stored in flash (`Preferences` key `RemoteId`), so one firmware file serves every remote and
-  reflashing keeps it (unless "erase device" is ticked in the flasher).
+  reflashing keeps it (the web flasher never erases).
 - **Water mode** is also a saved setting on each remote (`Preferences` key `WaterMode`): WATER page, hold UP + DOWN
   together 2 s to switch; the page title shows it.
   - **BOAT** (default, the original behaviour): BACK toggles. "On" is a 1 h timer that the remote's heartbeats keep
@@ -195,8 +195,16 @@ range or library-version problems. See `tests/host/README.md`.
   `flasher/` page plus the binaries are published to GitHub Pages. On a release, a zip of the binaries is attached too.
 - **Pin the board package and library versions** in the workflow (`CORE_VERSION`, `LIBRARY_VERSION`) to the ones
   that work, and use the same in the Arduino IDE guide.
-- The flasher (ESP Web Tools, pinned version) writes four parts: bootloader at 0x0, partition table 0x8000,
-  `boot_app0` 0xE000, app 0x10000. The NVS area (saved settings) is left alone unless the user ticks "erase".
+- The flasher (ESP Web Tools 10.1.0, pinned) writes five parts: bootloader at 0x0, partition table 0x8000,
+  `boot_app0` 0xE000, app 0x10000, and the bind-phrase block in the last 4 KB of the app partition. It **never
+  erases**: `flasher/no-erase.js` makes ESP Web Tools' internal `_startInstall(erase)` always get `false` (and refuses
+  to open the installer if a different version lacks it), and the manifests set `new_install_prompt_erase: false`.
+- **Heltec radio license:** Heltec's library checks a per-chip license in `Mcu.begin()`. It keeps it in flash, in the
+  `app1` partition (the second OTA slot; a `key_data` partition is the fallback). A full flash erase deletes it, and
+  the firmware then loops in `Mcu.begin()` printing "Please provide a correct license!" with the chip ID, screen off.
+  Fix: get the license for that chip ID from resource.heltec.cn/search and send `AT+CDKEY=<the 4 numbers as 32 hex
+  digits, no 0x / commas>` over serial; Heltec's library saves it. So: never full-erase these boards, and don't use
+  `app1` for anything (OTA updates would write it) without saving the license elsewhere first.
 - Each sketch folder has a `sketch.yaml` with the default board for `arduino-cli`; the Arduino IDE ignores it.
 
 ## Changing the motor (e.g. DC instead of the AC induction motor)

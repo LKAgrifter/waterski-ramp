@@ -107,9 +107,10 @@
   </div>
 
   <div class="warn">
-    <strong>Keep settings?</strong> The installer may offer to <em>erase the device</em>. Leave that <strong>unticked</strong>
-    when updating a board: erasing wipes saved settings (a remote's ID, the ramp's last height). Tick it only for a
-    brand-new board or if a board misbehaves.
+    <strong>This flasher never erases the board.</strong> Erasing would delete the board's <strong>Heltec radio
+    license</strong> (each board keeps it in its flash; without it the firmware stops at start-up and the screen stays
+    off), as well as its saved settings. So installing only writes the firmware: settings like the ramp's last height
+    and the motor counters are kept. Don't use other tools' "erase flash" option on these boards either.
   </div>
 
   <h2>Steps</h2>
@@ -134,9 +135,22 @@
     <li>Close the Arduino IDE or anything else that might have the port open.</li>
   </ul>
 
+  <h2>If the screen stays off after flashing</h2>
+  <p>Check the board's messages: Arduino IDE &gt; Tools &gt; Serial Monitor at 115200 baud (or the installer's
+    <em>Logs &amp; Console</em>). If it repeats <code>Please provide a correct license!</code> and an
+    <code>ESP32ChipID=</code>, the board's Heltec license was erased:</p>
+  <ol>
+    <li>Look up that chip ID at <a href="https://resource.heltec.cn/search">resource.heltec.cn/search</a>. You get
+      four numbers like <code>0xC2F3D087,0x...</code>.</li>
+    <li>In the Serial Monitor (line ending "Both NL &amp; CR"), send <code>AT+CDKEY=</code> followed by the four numbers
+      without the <code>0x</code> and commas (32 characters).</li>
+    <li>It answers <code>The board is actived</code> and starts. The license stays on the board from then on.</li>
+  </ol>
+
   <p class="version">Firmware version: <span id="ver">loading&hellip;</span> &middot;
     Changing the code? See the <a href="REPO_URL">firmware repository</a> and its Arduino IDE guide.</p>
 </main>
+<script src="no-erase.js"></script>
 <script src="bind.js"></script>
 <script>
   // Bind phrase: build the installers' manifests with the phrase block added (bind.js)
