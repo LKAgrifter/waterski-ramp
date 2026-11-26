@@ -10,7 +10,7 @@
 //                   meter in the sweet spot. Three jumps, best total wins.
 //   5. Trick Combo  Simon-says: watch the trick combo, then repeat it.       UP = jump, MENU = spin, DOWN = duck
 //
-//   In the menu: UP / DOWN pick a game, ENTER (tap) plays it.
+//   In the menu: UP / DOWN pick a game, MENU (tap) plays it.
 //   In any game: BACK (tap) returns to this menu.   HOLD ENTER (as on every other page) leaves the games entirely.
 //
 // Self-contained: it only reads the four AUX buttons and draws on `display`. It never touches the motor, water, radio,
@@ -33,7 +33,7 @@
 //    (about 12 would mean the games are being throttled by the screen refresh). Set GM_DEBUG to false when you are done.
 // ===========================================================================
 
-constexpr bool    GM_DEBUG = true;
+constexpr bool    GM_DEBUG = false;
 constexpr uint8_t GM_COUNT = 5;
 
 constexpr uint8_t GM_B_UP = 0;
@@ -1384,7 +1384,7 @@ void gmMenuFrame()
   }
   else
   {
-    snprintf(r, sizeof(r), "ENT = play");
+    snprintf(r, sizeof(r), "MENU = play");
   }
   gmHeader("GAMES", r);
 
