@@ -271,6 +271,13 @@ constexpr uint8_t LED_2         = 20; // LED 2 (Ramp at 5)
 constexpr uint8_t LED_3         = 26; // LED 3 (Ramp At 5.5)
 constexpr uint8_t LED_4         = 40; // LED 4 (Ramp at 4)
 
+// WATER LED: the Heltec board's own white LED (GPIO 35, LED_BUILTIN on the V3) shows the water.
+//   on = water on   |   slow blink = water switched on but paused while the ramp moves   |   off = water off
+// On a remote it shows what the ramp reports, and stays off while there's no link to the ramp.
+constexpr bool    WATER_LED_ENABLED = true;   // false = leave the white LED off (e.g. to save power)
+constexpr uint8_t WATER_LED         = 35;
+constexpr unsigned long WATER_LED_BLINK_MS = 500;   // Half of the slow blink (500 ms on, 500 ms off)
+
 // The web flasher can set the remote ID and type (BOAT / TIMER water mode). They're saved once, on the first boot after
 // that flash; after that the NETWORK / WATER pages can change them as usual, until the next web flash sets them again.
 void applyFlashedSettings()
@@ -283,6 +290,21 @@ void applyFlashedSettings()
   if (rsFlashWaterMode == WATER_MODE_BOAT || rsFlashWaterMode == WATER_MODE_TIMER)
     prefs.putUChar("WaterMode", rsFlashWaterMode);
   prefs.putULong("FlashCfgId", rsFlashId);
+}
+
+// The board's white LED shows the ramp's water, as the ramp reports it (WATER_LED above). Off without a link.
+// The ramp pauses the water while it moves, so the LED blinks slowly then, like the ramp's own.
+void updateWaterLed()
+{
+  bool on = false;
+  if (WATER_LED_ENABLED && state.Remote_Connected && state.Water_Relay)
+  {
+    if (state.Motor_Running)
+      on = ((millis() / WATER_LED_BLINK_MS) % 2) == 0;
+    else
+      on = true;
+  }
+  digitalWrite(WATER_LED, on ? HIGH : LOW);
 }
 
 void setup() {
@@ -310,6 +332,8 @@ void setup() {
   pinMode(LED_2, OUTPUT);
   pinMode(LED_3, OUTPUT);
   pinMode(LED_4, OUTPUT);
+  pinMode(WATER_LED, OUTPUT);
+  digitalWrite(WATER_LED, LOW);
 
   // 2. Initialize Heltec V3 MCU and Power on Vext (powers OLED and sensor rails)
   Mcu.begin(HELTEC_BOARD, SLOW_CLK_TPYE);
@@ -360,5 +384,6 @@ handleOLEDTimeout();   // swallows the wake-up press. When the screen sleeps the
 processButtons();      // must come after handleOLEDTimeout
 handleLoraLink();
 drawScreen();
+updateWaterLed();     // the board's white LED shows the ramp's water
 
 }

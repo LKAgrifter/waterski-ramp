@@ -1,5 +1,21 @@
+// The board's white LED shows the water (WATER_LED in the main tab)
+void updateWaterLed()
+{
+  bool on = false;
+  if (WATER_LED_ENABLED && state.Water_Relay)
+  {
+    if (waterPausedForMotor())
+      on = ((millis() / WATER_LED_BLINK_MS) % 2) == 0;   // Paused while the ramp moves: slow blink
+    else
+      on = true;
+  }
+  digitalWrite(WATER_LED, on ? HIGH : LOW);
+}
+
 void updateLEDs()
 {
+  updateWaterLed();
+
   // Adjustable strobe cycle duration in milliseconds (default is 1000ms = 1 second)
   static unsigned long strobeCycleMs = 1000; 
 
