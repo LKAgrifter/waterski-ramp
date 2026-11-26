@@ -33,7 +33,7 @@ constexpr uint8_t LIMIT_COUNT = sizeof(limits) / sizeof(limits[0]);
 // Raw (not debounced) reading of switch i: true = triggered. In simulation mode it comes from the PC instead of the pin.
 bool readLimitRaw(uint8_t i)
 {
-  if (SIM_MODE)
+  if (simActive)
     return simSensorActive(i);
   return digitalRead(limits[i].pin) == LIMIT_ACTIVE_LEVEL;
 }

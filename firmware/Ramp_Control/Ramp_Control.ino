@@ -97,17 +97,22 @@ constexpr bool HEIGHT_SAFETY_BYPASS_AT_BOOT = false;
 constexpr bool ALLOW_BYPASS_FROM_REMOTE     = false;
 
 // ---------------------------------------------------------------------------
-// *** SIMULATION MODE (for the PC simulator - leave false for real use) ***
-// true = this board pretends to be on the ramp for the simulator page (separate "waterski-ramp-sim" repo):
+// *** SIMULATION MODE (for the PC simulator) ***
+// In simulation mode this board pretends to be on the ramp for the simulator page (separate "waterski-ramp-sim" repo):
 //   - the four height sensors are read from USB serial ("@S" lines from the PC) instead of the sensor pins
 //   - relay changes are reported over USB ("@R" lines) INSTEAD of switching the relays: the relay pins stay OFF,
-//     so a simulation build can't move a real ramp
+//     so simulation mode can't move a real ramp
 //   - the screens show "SIM"
 // Everything else (menus, buttons, remotes, LoRa, safety logic, timeouts) is the normal firmware.
-// Details and the serial protocol: Sim_Mode_Ramp.ino. Never leave a simulation build on the real ramp.
+// The normal firmware switches to it by itself when the simulator page asks: at start-up the board sends "@SIM?"
+// over USB and listens briefly; if the page answers "@SIM ON", it runs in simulation mode until its next reset or
+// power cut. With nothing connected it starts normally. Details and the serial protocol: Sim_Mode_Ramp.ino.
+// SIM_MODE = true makes a build that is ALWAYS in simulation mode (the simulator's built-in emulator uses one):
+// never put such a build on the real ramp.
 // ---------------------------------------------------------------------------
 constexpr bool SIM_MODE = false;
 constexpr uint8_t SIM_PROTOCOL_VERSION = 1;   // Sent in "@HELLO". Change it whenever the serial protocol changes.
+bool simActive = SIM_MODE;   // Running in simulation mode now (SIM_MODE, or the simulator asked for it at start-up)
 
 /// --- Schematic Peripherals Pin Mapping (J2 / J3 Headers) ---
 
@@ -268,9 +273,9 @@ constexpr uint8_t RELAY_OFF = LOW;
 void simSetRelay(uint8_t pin, bool on);   // Sim_Mode_Ramp.ino
 void setRelay(uint8_t pin, bool on)
 {
-  if (SIM_MODE)
+  if (simActive)
   {
-    digitalWrite(pin, RELAY_OFF);   // Simulation build: never switch a real relay, just tell the PC
+    digitalWrite(pin, RELAY_OFF);   // Simulation mode: never switch a real relay, just tell the PC
     simSetRelay(pin, on);
     return;
   }
@@ -409,7 +414,7 @@ void setup() {
   setRelay(Pump_Relay, false);
 
   Serial.begin(115200);
-  simBegin();   // Simulation mode only (does nothing otherwise)
+  simBegin();   // Asks the simulator page whether to run in simulation mode (Sim_Mode_Ramp.ino)
 
   //Define Preferences
   prefs.begin("settings", false);

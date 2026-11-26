@@ -164,10 +164,16 @@ and sensor faults ignored, only someone standing at the ramp drives it.
 **Ladder calibration mode:** `LADDER_CALIBRATION_MODE = true` shows the raw reading on HOME (and Serial at 115200)
 and disables height selection. Set back to false afterwards.
 
-**Simulation mode:** `SIM_MODE = true` (ramp sketch only, false for real use) turns the ramp board into the heart of
-the PC simulator (separate `waterski-ramp-sim` repo). The four height sensors are read from USB serial instead of
-their pins, and relay changes are reported over USB **instead of switching the relays** (the relay pins stay off, so
-a simulation build can't move a real ramp). The screens show "SIM". Everything else is the normal firmware: menus,
+**Simulation mode** (ramp only) turns the ramp board into the heart of the PC simulator (separate `waterski-ramp-sim`
+repo). The normal firmware switches to it when the simulator page asks: at start-up, straight after `Serial.begin()`
+(before the settings are loaded or a sensor or relay is used), the board sends `@SIM?` over USB and listens for
+400 ms (`SIM_ASK_MS`). If the page answers `@SIM ON`, the board stays in simulation mode until its next reset or power
+cut (`simActive`); otherwise it starts normally, so with nothing connected the only cost is that 0.4 s. A board
+already running answers the page's `@HELLO?` with `@NORMAL`, and the page resets it through the USB chip so it asks.
+`SIM_MODE = true` (main tab) makes a build that is always in simulation mode: the simulator's emulator uses one; never
+put it on the real ramp. In simulation mode the four height sensors are read from USB serial instead of their pins,
+and relay changes are reported over USB **instead of switching the relays** (the relay pins stay off, so simulation
+mode can't move a real ramp). The screens show "SIM". Everything else is the normal firmware: menus,
 buttons, remotes, LoRa, safety logic and timeouts. At boot it waits up to 1 s for the PC's first sensor reading so a
 ramp parked on a (virtual) sensor is found like the real one. If the PC goes quiet for 500 ms every sensor reads
 off. All the code is in `Sim_Mode_Ramp.ino`, including the serial protocol (`@S` sensors in, `@R` relays and `@T`

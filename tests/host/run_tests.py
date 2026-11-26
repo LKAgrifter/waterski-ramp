@@ -80,6 +80,7 @@ TESTCASES = [
     ('sim_mode',                 'sim_mode.cpp',                'ramp_sim',   ['SIM'], False),
     ('sim_mode_boot_no_sensor',  'sim_mode.cpp',                'ramp_sim',   ['SIM', 'NOSENSOR'], False),
     ('sim_mode_off',             'sim_mode.cpp',                'ramp',       [], False),
+    ('sim_mode_handshake',       'sim_mode.cpp',                'ramp',       ['SIM', 'HANDSHAKE'], False),
     ('games_ramp',               'games.cpp',                   'ramp',       ['RAMP_SIDE', 'DISPLAY_COST=22', 'VARIANT="\\"ramp\\""'], True),
     ('games_remote',             'games.cpp',                   'remote',     ['DISPLAY_COST=22', 'VARIANT="\\"remote\\""'], True),
 ]

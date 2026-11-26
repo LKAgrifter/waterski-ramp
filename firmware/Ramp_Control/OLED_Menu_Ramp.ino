@@ -160,7 +160,7 @@ void maskToString(uint8_t mask, char *out, size_t n)
 void drawTitle(const char *title)
 {
     char pg[12];
-    snprintf(pg, sizeof(pg), SIM_MODE ? "SIM %u/6" : "%u/6", pageNumber());
+    snprintf(pg, sizeof(pg), simActive ? "SIM %u/6" : "%u/6", pageNumber());
 
     display.setFont(ArialMT_Plain_10);
     display.setTextAlignment(TEXT_ALIGN_LEFT);
@@ -231,12 +231,12 @@ void drawBootScreen()
     if(!bootAnimationDone(millis() - animStart))   // ... and the boot screen lasts one jump (Boot_Animation.ino)
     {
 
-        // The second line is the warning when there is one (both in turn if the sensor bypass is on in SIM_MODE)
+        // The second line is the warning when there is one (both in turn if the sensor bypass is on in simulation mode)
         const char *subtitle = "Ramp Side Controller";
         bool bypass = heightSafetyBypassActive();
-        if (bypass && (!SIM_MODE || (millis() / 1250) % 2 == 0))
+        if (bypass && (!simActive || (millis() / 1250) % 2 == 0))
             subtitle = "!! SENSOR BYPASS ON !!";
-        else if (SIM_MODE)
+        else if (simActive)
             subtitle = "** SIMULATION MODE **";
 
         display.setFont(ArialMT_Plain_10);
@@ -364,7 +364,7 @@ void drawHomeScreen() //Draw the home screen. Status only: no buttons do anythin
     else if (heightSafetyBypassActive())
         status = "BYPASS ON!";
     display.drawString(0, 39, status);
-    if (SIM_MODE)
+    if (simActive)
     {
         display.setTextAlignment(TEXT_ALIGN_RIGHT);
         display.drawString(127, 39, "SIM");

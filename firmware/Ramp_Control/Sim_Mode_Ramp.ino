@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------
-// SIMULATION MODE: talks to the PC simulator page over USB serial. Only active when SIM_MODE is true (main tab);
-// with SIM_MODE = false every function here returns straight away and the sketch behaves exactly as normal.
+// SIMULATION MODE: talks to the PC simulator page over USB serial. Off unless the page asks for it at start-up (or
+// SIM_MODE is true, main tab): the sketch then behaves exactly as normal, apart from answering the page.
 // ---------------------------------------------------------------------------
 //
 // The simulator page (separate "waterski-ramp-sim" repo) plays the part of the ramp: it moves a virtual ramp from
@@ -8,6 +8,14 @@
 //
 // SERIAL PROTOCOL (version SIM_PROTOCOL_VERSION, 115200 baud, one text line each, ending in a newline)
 // Lines starting with '@' are simulator traffic. Anything else (debug prints) is just shown in the page's log.
+//   Switching to simulation mode (normal firmware):
+//     ramp -> PC  @SIM?      At start-up, straight after Serial.begin() (before the settings are loaded or a sensor
+//                            or relay is used). The ramp then listens for SIM_ASK_MS.
+//     PC -> ramp  @SIM ON    Answer within SIM_ASK_MS: the ramp runs in simulation mode until its next reset or
+//                            power cut. Too late (or never), it runs normally.
+//     ramp -> PC  @NORMAL <version>   A ramp running normally answers @HELLO? (and a late @SIM ON) with this. The page
+//                            then resets the board through the USB chip, so it starts again and asks @SIM?.
+//   In simulation mode:
 //   PC -> ramp:
 //     @S <mask>              Height sensors: bit 0 = 4 ft, bit 1 = 4.5 ft, bit 2 = 5 ft, bit 3 = 5.5 ft (1 = triggered).
 //                            Decimal, 0-15. Sent on every change and every 50 ms.
@@ -28,6 +36,7 @@ constexpr unsigned long SIM_STATUS_REPORT_MS  = 250;
 constexpr unsigned int  SIM_BOOT_WAIT_MS      = 1000;   // setup() waits up to this long for the first @S, so a ramp
                                                         // parked on a (virtual) sensor is found at boot like the real one
 constexpr uint8_t       SIM_LINE_MAX          = 32;     // Longest PC line accepted (longer lines are ignored)
+constexpr unsigned int  SIM_ASK_MS            = 400;    // How long the normal firmware listens for "@SIM ON" at start-up
 
 uint8_t simSensorMask = 0;          // Sensor states from the last @S line
 bool simHaveSensors = false;        // An @S line arrived within SIM_SENSOR_TIMEOUT_MS
@@ -41,10 +50,12 @@ unsigned long simLastStatusReport = 0;
 char simLine[SIM_LINE_MAX];
 uint8_t simLineLen = 0;
 bool simLineTooLong = false;
+bool simAsking = false;             // Start-up: listening for the page's "@SIM ON"
 
+// @HELLO in simulation mode; running normally, @NORMAL (the page then resets the board so it asks @SIM? again)
 void simSendHello()
 {
-  Serial.printf("@HELLO %u\n", (unsigned)SIM_PROTOCOL_VERSION);
+  Serial.printf(simActive ? "@HELLO %u\n" : "@NORMAL %u\n", (unsigned)SIM_PROTOCOL_VERSION);
 }
 
 void simSendRelays()
@@ -73,7 +84,19 @@ bool simSensorActive(uint8_t i)
 
 void simHandleLine(const char *line)
 {
-  if (strncmp(line, "@S ", 3) == 0)
+  if (strcmp(line, "@SIM ON") == 0)
+  {
+    if (simAsking)
+      simActive = true;   // The page answered at start-up: simulation mode until the next reset
+    else
+      simSendHello();     // Already decided: @HELLO (simulation mode) or @NORMAL (too late: the page resets the board)
+  }
+  else if (!simActive)
+  {
+    if (strcmp(line, "@HELLO?") == 0)
+      simSendHello();     // @NORMAL: tells the page this board runs normally
+  }
+  else if (strncmp(line, "@S ", 3) == 0)
   {
     char *end;
     long mask = strtol(line + 3, &end, 10);
@@ -117,13 +140,25 @@ void simReadSerial()
   }
 }
 
-// From setup(), straight after Serial.begin()
+// From setup(), straight after Serial.begin(), before the settings are loaded or a sensor or relay is used:
+// asks the simulator page whether to run in simulation mode (unless SIM_MODE already says so)
 void simBegin()
 {
-  if (!SIM_MODE)
-    return;
-
   simSerialReady = true;
+  if (!simActive)
+  {
+    Serial.println("@SIM?");
+    simAsking = true;
+    for (unsigned int i = 0; i < SIM_ASK_MS && !simActive; i++)
+    {
+      simReadSerial();
+      delay(1);
+    }
+    simAsking = false;
+    if (!simActive)
+      return;   // No simulator page: start normally
+  }
+
   Serial.println("*** SIMULATION MODE: height sensors come from USB, relays are NOT switched ***");
   simSendHello();
   simSendRelays();
@@ -132,7 +167,7 @@ void simBegin()
 // From setup(), just before initHeight(): give the PC a moment to send its first sensor reading
 void simWaitForSensors()
 {
-  if (!SIM_MODE)
+  if (!simActive)
     return;
 
   for (unsigned int i = 0; i < SIM_BOOT_WAIT_MS && !simHaveSensors; i++)
@@ -189,10 +224,9 @@ void simSendStatus()
 // From loop(), before updateHeight()
 void simService()
 {
-  if (!SIM_MODE)
+  simReadSerial();   // Running normally this only answers the page's @HELLO? / @SIM ON (with @NORMAL)
+  if (!simActive)
     return;
-
-  simReadSerial();
 
   if (simHaveSensors && (millis() - simLastSensorAt) > SIM_SENSOR_TIMEOUT_MS)
   {

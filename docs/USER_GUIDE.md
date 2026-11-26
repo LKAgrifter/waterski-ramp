@@ -238,5 +238,5 @@ Hold MENU 0.5 s on any page to go to the next one.
 | `ALLOW_HEIGHT_SAFETY_BYPASS` | Ramp | true | false = no testing bypass at all |
 | `ALLOW_BYPASS_FROM_REMOTE` | Ramp | false | true = remotes may switch the bypass |
 | `HEIGHT_SAFETY_BYPASS_AT_BOOT` | Ramp | false | true = starts with the bypass on (bench without sensors) |
-| `SIM_MODE` | Ramp | false | true = simulator board: relays never switch. Never on the real ramp |
+| `SIM_MODE` | Ramp | false | true = always in simulator mode: relays never switch. Never on the real ramp. Not needed for the simulator page: it switches the normal firmware into simulator mode itself |
 | `LADDER_CALIBRATION_MODE` | Both | false | true = shows the raw height-button reading for re-calibration |

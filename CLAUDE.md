@@ -36,8 +36,9 @@ Read `docs/DEVELOPMENT.md` first: hardware facts, safety rules and the reasons b
 
 ## Related repo
 The PC simulator / 3D / AR showcase lives in the separate `waterski-ramp-sim` repo, normally cloned next to this
-one. The firmware side of it is `SIM_MODE` (main tab, default false) and `Sim_Mode_Ramp.ino` in THIS repo:
-height sensors from USB, relay states to USB, relay pins never switched. Its serial protocol is shared with the
+one. The firmware side of it is `Sim_Mode_Ramp.ino` in THIS repo (simulation mode: height sensors from USB, relay
+states to USB, relay pins never switched). The normal firmware enters it when the page answers `@SIM ON` to the
+`@SIM?` it sends at start-up (`simActive`); `SIM_MODE = true` (main tab, default false) forces it on (emulator build). Its serial protocol is shared with the
 simulator page: change both repos together and bump `SIM_PROTOCOL_VERSION`. Test: `tests/host/tests/sim_mode.cpp`.
 The simulator's controller emulator is this repo's `Ramp_Control` sketch compiled to WebAssembly: after changing
 it, rebuild the emulator in the sim repo (`python emulator/build.py`, then commit `web/js/firmware_emu.js` there).
