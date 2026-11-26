@@ -18,6 +18,7 @@ Both units use the same board, the same buttons and the same menu pages, so if y
 | UP and DOWN buttons | Drive the ramp by hand (MANUAL page); scroll lists; held together for 2 s they open special functions |
 | Height buttons (4.0 / 4.5 / 5.0 / 5.5) | Pick a height (SET HEIGHT page only) |
 | LEDs (ramp controller) | Show the height the ramp is at: blue 4.0 ft, green 4.5 ft, yellow 5.0 ft, red 5.5 ft |
+| White LED on the board (both units) | The water: on = water on, slow blink = water paused while the ramp moves, off = water off. A remote shows what the ramp reports, and keeps it off while it has no link to the ramp. |
 
 The motor is slow on purpose: one 0.5 ft step takes about 70 seconds, and 4.0 to 5.5 ft takes about 3.5 minutes. While the ramp moves, the water pauses and comes back on about 1 second after it stops.
 

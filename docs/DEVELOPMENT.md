@@ -83,6 +83,7 @@ Read this before changing behaviour. Settings are named constants near the top o
 | Buttons (both units) | UP GPIO 7, DOWN GPIO 6, MENU/ENTER GPIO 38, BACK/WATER GPIO 39 (INPUT_PULLUP). |
 | Height buttons | Resistor ladder (10 k) on GPIO 5. Measured ADC: none ~3200, 4.0 ft ~2980, 4.5 ~2610, 5.0 ~1960, 5.5 ~0. Thresholds halfway between, 4-sample average. |
 | Ramp LEDs | GPIO 40 = 4 ft (blue), 19 = 4.5 ft (green), 20 = 5 ft (yellow), 26 = 5.5 ft (red). |
+| Water LED (both units) | GPIO 35, the board's white LED: on = water on, 1 s slow blink = paused while moving, off = off. Remote: from telemetry, off without a link. `WATER_LED_ENABLED` turns it off. Test: `water_led.cpp`. |
 | Current sense | GPIO 4 (AC current sensor), ramp only. |
 | Motor | ~135 rpm x 1 mm/rev = ~2.25 mm/s. A 0.5 ft step (152 mm) is ~68 s if jack travel equals height change. 4 -> 5.5 ft is ~3.4 min. |
 
@@ -230,4 +231,4 @@ Everything motor-specific is in `Motor_and_Failsafes_Ramp.ino` plus a few consta
   reaches a real sensor (then two read on -> sensor fault). Diagnostics "Sw on:" shows which sensors read on.
 - Games high scores are kept in RAM only.
 - Current sensing (GPIO 4) is not implemented yet: the overcurrent fault and its screen/radio flags exist, but nothing sets it (TODO in `updateMotorControl()`).
-- Remote LEDs: there's no LED tab for the remote yet.
+- Remote LEDs: there's no LED tab for the remote yet (only the white water LED, `updateWaterLed()` in its main tab).

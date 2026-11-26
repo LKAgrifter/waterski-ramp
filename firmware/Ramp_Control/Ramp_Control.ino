@@ -249,6 +249,12 @@ constexpr uint8_t LED_2         = 20; // LED 2 (Ramp at 5)
 constexpr uint8_t LED_3         = 26; // LED 3 (Ramp At 5.5)
 constexpr uint8_t LED_4         = 40; // LED 4 (Ramp at 4)
 
+// WATER LED: the Heltec board's own white LED (GPIO 35, LED_BUILTIN on the V3) shows the water.
+//   on = water on   |   slow blink = water switched on but paused while the ramp moves   |   off = water off
+constexpr bool    WATER_LED_ENABLED = true;   // false = leave the white LED off (e.g. to save power)
+constexpr uint8_t WATER_LED         = 35;
+constexpr unsigned long WATER_LED_BLINK_MS = 500;   // Half of the slow blink (500 ms on, 500 ms off)
+
 //Relays and Current Sensor
 constexpr uint8_t Power_Relay   = 2; //Motor Power Relay      (swapped with Dir to match the PCB)
 constexpr uint8_t Dir_Relay     = 3; //Motor Direction Relay  (energized = UP)
@@ -431,6 +437,8 @@ void setup() {
   pinMode(LED_2, OUTPUT);
   pinMode(LED_3, OUTPUT);
   pinMode(LED_4, OUTPUT);
+  pinMode(WATER_LED, OUTPUT);
+  digitalWrite(WATER_LED, LOW);
   
 
   // 2. Initialize Heltec V3 MCU and Power on Vext (powers OLED and sensor rails)
