@@ -227,9 +227,9 @@ void drawRadioStartScreen()
 
 void drawBootScreen()
 {
-    if(millis() < 5000)
+    static unsigned long animStart = millis();   // The jump animation starts with the boot screen ...
+    if(!bootAnimationDone(millis() - animStart))   // ... and the boot screen lasts one jump (Boot_Animation.ino)
     {
-        static unsigned long animStart = millis();   // The jump animation starts with the boot screen
 
         // The second line is the warning when there is one (both in turn if the sensor bypass is on in SIM_MODE)
         const char *subtitle = "Ramp Side Controller";
