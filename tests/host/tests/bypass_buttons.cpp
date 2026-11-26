@@ -12,6 +12,7 @@ int digitalRead(uint8_t p){
   return pinv[p]; }
 int analogRead(uint8_t){return adc;}
 #include SRC
+#include "radio_test.h"
 static int fails=0;
 #define CHECK(c,msg) do{ if(!(c)){printf("FAIL: %s\n",msg);fails++;} else printf("ok:   %s\n",msg);}while(0)
 
@@ -21,12 +22,12 @@ static bool rampBypass=false, drove=false; static int bypassRequests=0, seenSent
 #endif
 void run(int ms){ for(int i=0;i<ms;i++){ g_millis++;
 #ifdef REMOTE
-    if(Radio.sent!=seenSent){ seenSent=Radio.sent; CommandPacket c; memcpy(&c,Radio.last,sizeof(c));
+    if(Radio.sent!=seenSent){ seenSent=Radio.sent; CommandPacket c; sentCommand(c);
       if(c.remoteControlMode!=0) drove=true;
       if(c.bypassCommand!=-1) bypassRequests++;
       ackSeq=c.seq; }
     if(g_millis%250==0){ TelemetryPacket t; memset(&t,0,sizeof(t)); ((uint8_t*)&t)[0]=0xA1; t.flags=rampBypass?FLAG_BYPASS:0;
-      t.ackRemoteId=REMOTE_ID; t.ackSeq=ackSeq; ackSeq=0; t.txCounter=telCtr++; OnRxDone((uint8_t*)&t,sizeof(t),-60,7); }
+      t.ackRemoteId=REMOTE_ID; t.ackSeq=ackSeq; ackSeq=0; t.txCounter=telCtr++; rxTelemetry(t,-60,7); }
 #endif
     loop();
 #ifndef REMOTE
@@ -84,7 +85,7 @@ int main(){
 
   // A bypass request over the radio is ignored (ramp only), whatever firmware the remote runs
   { CommandPacket c; c.remoteId=1; c.seq=77; c.targetHeightIndex=-1; c.waterCommand=-1; c.remoteControlMode=0; c.bypassCommand=1; c.txCounter=0;
-    OnRxDone((uint8_t*)&c,sizeof(c),-60,7); run(100); }
+    rxCommand(c,-60,7); run(100); }
   CHECK(!heightSafetyBypassActive(),"a bypass request from a remote is ignored");
 
   // Other pages: UP + DOWN does not touch the bypass

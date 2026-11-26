@@ -14,10 +14,34 @@ Read this before changing behaviour. Settings are named constants near the top o
 
 ### Radio protocol (`LORA_Coms_Ramp.ino` / `LORA_Coms_Remote.ino`)
 
-| Packet | ID | Direction | When |
+| Packet | On the air | Direction | When |
 |---|---|---|---|
-| `TelemetryPacket` (19 bytes) | `0xA1` | ramp -> all remotes | every 250 ms (4 Hz), plus an immediate reply to each command |
-| `CommandPacket` (8 bytes) | `0xB2` | remote -> ramp | on a button action, keep-alives, and every ~150 ms while a manual button is held |
+| `TelemetryPacket` | 18 bytes, sender `0xA1` | ramp -> all remotes | every 250 ms (4 Hz), plus an immediate reply to each command |
+| `CommandPacket` | 14 bytes, sender `0xB1`-`0xB4` (= `0xB0` + remote ID) | remote -> ramp | on a button action, keep-alives, and every ~150 ms while a manual button is held |
+
+- **Every packet is encrypted and signed** (`Radio_Security.ino`, an identical tab in both sketches): ChaCha20-Poly1305
+  (RFC 8439) with the tag cut to 4 bytes, key = SHA-256(`"waterski-ramp/bind/v1:"` + bind phrase). On the air:
+  `[sender 1][frame counter 4][encrypted payload][tag 4]`. The structs are only the in-memory form: telemetry is
+  packed into 9 bytes, a command into 5 (layout at the top of `LORA_Coms_*.ino`; `packetId`, `remoteId` and
+  `txCounter` come from the sender byte and frame counter instead). Airtime at SF8/125 kHz: telemetry ~103 ms (was
+  ~115 ms unencrypted), a command ~91 ms (was ~78 ms), so a command still fits in the ~147 ms quiet gap after a
+  telemetry packet.
+- **Frame counters never repeat** (so no nonce is reused): each unit counts its packets, and reserves blocks of 4096
+  in Preferences (`RadioFcnt`), so a reboot starts at the next unused block.
+- **No replays:** a receiver only takes a frame counter higher than the last one from that sender (forgotten after
+  the sender has been silent 10 s on the ramp / the link has dropped on a remote, so an erased-and-reflashed unit is
+  heard again). A remote command is also signed with the frame counter of the last telemetry it heard (not sent);
+  the ramp tries its last 16 (`COMMAND_ECHO_WINDOW`, ~4 s). A command recorded earlier matches none of them, even
+  after the ramp reboots.
+- **Bind phrase sources**, first found wins: `bind_phrase.h` in the sketch folder (`#define BIND_PHRASE "..."`,
+  gitignored - never commit a phrase, the repo is public); the block the web flasher writes in the last 4 KB of the
+  app partition (`"WSRBIND1"`, length, phrase, CRC-32; `flasher/bind.js` builds it and adds it to the ESP Web Tools
+  manifest as an extra part); otherwise unbound (the phrase `""`, a public key: works between unbound boards, but
+  isn't secure). The NETWORK pages show `Bind:` and a 4-character code (first 2 bytes of SHA-256(key)), plus
+  "Bad key" (wrong key or stale echo), "Replayed" and "Old firmware heard" (unencrypted 8 / 19-byte packets).
+- Tests: `tests/host/tests/radio_security.cpp` checks the crypto against the RFC 8439 vector and Python
+  `cryptography` (vectors in `radio_vectors.h`, made by `tests/host/tools/gen_radio_vectors.py`), and the refusals.
+  Other tests send and read packets through `tests/host/tests/radio_test.h`.
 
 - Telemetry carries heights (as indexes 0-3), water state and minutes left, motor state, faults, the limit-switch
   mask and an ACK (`ackRemoteId`, `ackSeq`, `ackResult`) answering the last command.
@@ -139,7 +163,7 @@ and auto-generates function prototypes. That auto-generation is unreliable, so:
   arguments, need a hand-written forward declaration in the main tab (see the "Forward declarations" block).
 - Constants and globals used by several tabs live in the main tab.
 - Don't use `namespace` or file-scope `static` functions across tabs.
-- `Games.ino` must stay an identical copy in both sketch folders (the tests check this).
+- `Games.ino` and `Radio_Security.ino` must stay identical copies in both sketch folders (the tests check this).
 
 ## Tests
 

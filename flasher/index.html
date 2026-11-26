@@ -36,6 +36,15 @@
     ol { padding-left: 1.3em; } li { margin: 6px 0; }
     code { background: var(--line); padding: 1px 5px; border-radius: 4px; font-size: .92em; }
     .version { color: var(--muted); font-size: .9rem; margin-top: 28px; }
+    .bind { margin: 0 0 20px; }
+    .bind label { font-weight: 600; display: block; margin-bottom: 6px; }
+    .bind input { width: 100%; font: inherit; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px;
+                  background: var(--bg); color: var(--text); }
+    .bind .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 8px; color: var(--muted); }
+    .code { font: 600 1.15rem ui-monospace, Consolas, monospace; color: var(--text); letter-spacing: .08em; }
+    .err { color: #c0392b; }
+    .needs-phrase { color: var(--muted); font-style: italic; }
+    esp-web-install-button[hidden], [data-needs-phrase][hidden] { display: none !important; }
     a { color: var(--accent); }
   </style>
 </head>
@@ -44,11 +53,26 @@
   <h1>Ramp firmware flasher</h1>
   <p class="sub">Install the ramp controller or remote firmware straight from this page. No Arduino IDE, drivers or downloads.</p>
 
+  <div class="card bind">
+    <label for="phrase">Bind phrase</label>
+    <input id="phrase" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="64"
+           placeholder="e.g. a short sentence only your group knows">
+    <div class="row">
+      <span id="phraseMsg">The ramp and every remote must be flashed with the same phrase.</span>
+      <span>Code: <span class="code" id="code">----</span></span>
+    </div>
+    <p style="margin:10px 0 0">The radio messages are encrypted with this phrase, so only boards that share it can
+      control the ramp. Keep it private and write it down: you need it again to add or replace a remote. After
+      flashing, each board's NETWORK page shows <code>Bind:</code> and the code above. Nothing you type here leaves
+      this page.</p>
+  </div>
+
   <div class="grid">
     <div class="card">
       <h2>Remote</h2>
       <p>For a handheld remote. One file works for every remote: set each remote's ID on the remote afterwards.</p>
-      <esp-web-install-button manifest="manifest-remote.json">
+      <p class="needs-phrase" data-needs-phrase>Type a bind phrase above first.</p>
+      <esp-web-install-button id="install-remote" data-manifest="manifest-remote.json" hidden>
         <button slot="activate">Install remote firmware</button>
         <span slot="unsupported">Use Chrome or Edge on a computer to flash.</span>
         <span slot="not-allowed">This page must be opened over https.</span>
@@ -57,7 +81,8 @@
     <div class="card">
       <h2>Ramp controller</h2>
       <p>For the board in the ramp. Disconnect motor and pump power before flashing.</p>
-      <esp-web-install-button manifest="manifest-ramp.json">
+      <p class="needs-phrase" data-needs-phrase>Type a bind phrase above first.</p>
+      <esp-web-install-button id="install-ramp" data-manifest="manifest-ramp.json" hidden>
         <button slot="activate">Install ramp firmware</button>
         <span slot="unsupported">Use Chrome or Edge on a computer to flash.</span>
         <span slot="not-allowed">This page must be opened over https.</span>
@@ -73,12 +98,16 @@
 
   <h2>Steps</h2>
   <ol>
+    <li>Type the bind phrase (the same one for the ramp and all its remotes).</li>
     <li>Plug the Heltec board into this computer with a USB-C <em>data</em> cable.</li>
     <li>Click the install button for the board you're flashing, pick the board's port, and confirm.</li>
     <li>Wait for it to finish (about a minute), then unplug it.</li>
     <li><strong>New remote:</strong> on the remote, hold MENU to reach the NETWORK page, then hold UP and DOWN
       together for 2 seconds to change its ID. Each remote talking to the same ramp needs a different ID (1&ndash;4).</li>
-    <li>Flash the ramp and all remotes from the <strong>same version</strong>; they share a radio message format.</li>
+    <li>Flash the ramp and all remotes from the <strong>same version</strong> and the <strong>same bind phrase</strong>.
+      Boards on older (unencrypted) firmware can't talk to this version: their NETWORK page counts them as "Old firmware heard".</li>
+    <li>Check every board's NETWORK page shows the same <code>Bind:</code> code. A board that hears another with a
+      different phrase counts it as "Bad key".</li>
   </ol>
 
   <h2>If it doesn't connect</h2>
@@ -91,7 +120,47 @@
   <p class="version">Firmware version: <span id="ver">loading&hellip;</span> &middot;
     Changing the code? See the <a href="REPO_URL">firmware repository</a> and its Arduino IDE guide.</p>
 </main>
+<script src="bind.js"></script>
 <script>
+  // Bind phrase: build the installers' manifests with the phrase block added (bind.js)
+  (function () {
+    const input = document.getElementById('phrase'), msg = document.getElementById('phraseMsg'), code = document.getElementById('code');
+    const buttons = ['remote', 'ramp'].map(k => document.getElementById('install-' + k));
+    const hints = document.querySelectorAll('[data-needs-phrase]');
+    const defaultMsg = msg.textContent;
+    let timer = 0, run = 0, urls = [];
+
+    function show(ready) {
+      buttons.forEach(b => { b.hidden = !ready; });
+      hints.forEach(h => { h.hidden = ready; });
+    }
+
+    async function update() {
+      const mine = ++run, phrase = input.value, bad = RampBind.problem(phrase);
+      show(false);
+      msg.classList.remove('err');
+      if (bad) { msg.textContent = phrase ? bad : defaultMsg; if (phrase) msg.classList.add('err'); code.textContent = '----'; return; }
+      try {
+        const c = await RampBind.keyCode(phrase);
+        const made = await Promise.all(buttons.map(b => RampBind.manifestWithPhrase(b.dataset.manifest, phrase)));
+        if (mine !== run) { made.forEach(u => URL.revokeObjectURL(u)); return; }
+        urls.forEach(u => URL.revokeObjectURL(u));
+        urls = made;
+        buttons.forEach((b, i) => { b.manifest = made[i]; b.setAttribute('manifest', made[i]); });
+        code.textContent = c;
+        msg.textContent = RampBind.clean(phrase) !== phrase ? 'Ready (spaces at the ends are ignored).' : 'Ready to flash.';
+        show(true);
+      } catch (e) {
+        if (mine !== run) return;
+        msg.textContent = e.message;
+        msg.classList.add('err');
+      }
+    }
+
+    input.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(update, 250); });
+    update();
+  })();
+
   // version.json is written by the GitHub build next to this page
   fetch('version.json').then(r => r.ok ? r.json() : null).then(v => {
     document.getElementById('ver').textContent = v ? (v.version + ' (' + v.date + ')') : 'unknown';

@@ -14,13 +14,14 @@ int digitalRead(uint8_t p){
   return pinv[p]; }
 int analogRead(uint8_t){return adc;}
 #include SRC
+#include "radio_test.h"
 static int fails=0;
 #define CHECK(c,msg) do{ if(!(c)){printf("FAIL: %s\n",msg);fails++;} else printf("ok:   %s\n",msg);}while(0)
 void run(int ms){ for(int i=0;i<ms;i++){ g_millis++; loop(); } }
 
 #ifdef REMOTE
 void telemetry(uint8_t flags){ static uint8_t ctr=0; TelemetryPacket t; memset(&t,0,sizeof(t)); ((uint8_t*)&t)[0]=0xA1; t.flags=flags; t.txCounter=ctr++;
-  OnRxDone((uint8_t*)&t,sizeof(t),-60,7); run(20); }
+  rxTelemetry(t,-60,7); run(20); }
 int main(){
   for(int i=0;i<64;i++) pinv[i]=1;
   setup(); run(6000);
@@ -34,10 +35,10 @@ int main(){
 }
 #else
 void sendCmd(uint8_t mode,int8_t h=-1,uint8_t seq=0){ static uint8_t ctr=0; CommandPacket c; c.remoteId=1; c.seq=seq; c.targetHeightIndex=h; c.waterCommand=-1; c.remoteControlMode=mode; c.bypassCommand=-1; c.txCounter=ctr++;
-  OnRxDone((uint8_t*)&c,sizeof(c),-60,7); }
+  rxCommand(c,-60,7); }
 uint8_t lastAck=ACK_NONE;
 bool remoteDrive(){ bool ran=false; for(int i=0;i<2000;i++){ if(i%150==0) sendCmd(1); run(1); if(outv[2]) ran=true; } lastAck=pendingAckResult; sendCmd(0); run(1500); return ran; }
-uint8_t telemetryFlags(){ run(4000); TelemetryPacket t; memcpy(&t,Radio.last,sizeof(t)); return t.flags; }   // last broadcast the ramp sent
+uint8_t telemetryFlags(){ run(4000); TelemetryPacket t; sentTelemetry(t); return t.flags; }   // last broadcast the ramp sent
 void holdMenu(){ pinv[38]=0; run(1100); pinv[38]=1; run(60); }
 int main(){
   for(int i=0;i<64;i++) pinv[i]=1;

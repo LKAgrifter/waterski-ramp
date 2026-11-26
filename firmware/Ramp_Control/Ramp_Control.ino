@@ -24,6 +24,12 @@ static SSD1306Wire  display(0x3c, 500000, SDA_OLED, SCL_OLED, GEOMETRY_128_64, R
 #define LORA_FIX_LENGTH_PAYLOAD_ON false
 #define LORA_IQ_INVERSION_ON    false
 
+// Encrypted packet layout (Radio_Security.ino has the details). Same values in both sketches.
+constexpr uint8_t RS_HEADER_LEN    = 5;      // Sender byte + 4-byte frame counter
+constexpr uint8_t RS_TAG_LEN       = 4;      // Signature (Poly1305 tag) bytes at the end
+constexpr uint8_t RS_SENDER_RAMP   = 0xA1;   // Sender byte of the ramp's packets
+constexpr uint8_t RS_SENDER_REMOTE = 0xB0;   // Sender byte of a remote's packets = this + its ID (0xB1..0xB4)
+
 // Radio Events Callbacks
 static RadioEvents_t RadioEvents;
 
@@ -370,6 +376,7 @@ void setup() {
 
   //Define Preferences
   prefs.begin("settings", false);
+  radioSecurityBegin();   // Radio key from the bind phrase (Radio_Security.ino)
 
   //Check for Power Loss
   powerLossRecovery();

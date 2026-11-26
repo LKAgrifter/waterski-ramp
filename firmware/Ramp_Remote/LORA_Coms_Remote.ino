@@ -62,7 +62,18 @@ constexpr uint8_t FLAG_OVERCURRENT    = 0x04;   // diag.overCurrentFault
 constexpr uint8_t FLAG_LOCAL_OVERRIDE = 0x08;   // Local height override is locking remotes out
 constexpr uint8_t FLAG_REMOTE_MANUAL_OFF = 0x10; // The ramp doesn't allow manual drive from remotes (its ALLOW_REMOTE_MANUAL)
 
-// Telemetry packet sent from Ramp -> all remotes (19 bytes). Must match the ramp side exactly.
+// On the air (Radio_Security.ino) the telemetry is packed into RS_TELEMETRY_LEN bytes and encrypted:
+//   [0] ramp height idx (bits 0-1) | desired height idx (bits 2-3) | limitMask (bits 4-7)
+//   [1] bits: 0 waterRelay, 1 motorRunning, 2 motorDirectionUp, 3 powerLoss, 4 heightSensorFault, 5 motorTimeoutFault
+//   [2] faultCount   [3] heightFaultMask (bits 0-3) | ackResult (bits 4-7)   [4] ackRemoteId   [5] ackSeq
+//   [6] flags        [7-8] waterRemainMin (little-endian)
+// packetId and txCounter aren't sent: the packet's sender byte and frame counter do their jobs.
+// A command goes as RS_COMMAND_LEN bytes: seq, targetHeightIndex, waterCommand, remoteControlMode, bypassCommand
+// (remoteId is in the sender byte, txCounter is the frame counter).
+constexpr uint8_t RS_TELEMETRY_LEN = 9;
+constexpr uint8_t RS_COMMAND_LEN = 5;
+
+// Telemetry from the Ramp -> all remotes (as decoded in memory). Must match the ramp side exactly.
 struct __attribute__((packed)) TelemetryPacket {
   uint8_t packetId = 0xA1;
   uint8_t rampHeightIndex;
@@ -84,7 +95,7 @@ struct __attribute__((packed)) TelemetryPacket {
   uint8_t txCounter;     // Increments on every packet the ramp sends. Gaps = packets we missed.
 };
 
-// Command packet sent from a remote -> Ramp (8 bytes). Must match the ramp side exactly.
+// Command from a remote -> Ramp (as built in memory). Must match the ramp side exactly.
 struct __attribute__((packed)) CommandPacket {
   uint8_t packetId = 0xB2;
   uint8_t remoteId;          // 1..MAX_REMOTES, unique per remote
@@ -112,6 +123,8 @@ constexpr uint8_t       MANUAL_STOP_REPEATS   = 2;     // "I let go" packets sen
 // Link state
 // ---------------------------------------------------------------------------
 TelemetryPacket lastTelemetry;          // Most recent telemetry heard
+uint32_t lastRampFcnt = 0;              // Its frame counter. Our commands are signed with it (Radio_Security.ino).
+bool haveRampFcnt = false;
 volatile bool telemetryReceived = false;
 int16_t lastRssi = 0;
 unsigned long lastHeardTime = 0;
@@ -122,6 +135,9 @@ struct LinkStats {
   uint32_t rxCrcErr = 0;      // CRC errors reported by the radio
   uint32_t rxOther = 0;       // Other remotes' commands we overheard (harmless, shows how busy the channel is)
   uint32_t rxUnknown = 0;     // Anything else
+  uint32_t rxBadKey = 0;      // Packets not signed with our key (a ramp with a different bind phrase)
+  uint32_t rxReplay = 0;      // Correctly signed but old (played back)
+  uint32_t rxOldFw = 0;       // Unencrypted packets from older firmware
   uint32_t lost = 0;          // Telemetry packets we know we missed (gaps in the ramp's counter)
   uint32_t cmdTx = 0;         // Packets we sent
   uint32_t cmdRetries = 0;    // Commands whose ACK didn't come back in time
@@ -130,7 +146,7 @@ struct LinkStats {
   int8_t   snr = 0;
   uint16_t rttMs = 0;         // Last send -> reply time
   bool     haveCounter = false;
-  uint8_t  lastCounter = 0;
+  uint32_t lastCounter = 0;   // Frame counter of the last telemetry, for packet loss
 };
 LinkStats loraStats;
 
@@ -275,6 +291,9 @@ bool manualBlocked()         // True for 1.5 s after the ramp refused our manual
 // ---------------------------------------------------------------------------
 void sendCommand(int8_t heightIndex, int8_t waterCommand, int8_t bypassCommand, uint8_t controlMode, uint8_t seq)
 {
+  if (!haveRampFcnt)
+    return;   // Commands are signed with the last ramp packet heard (we only send right after one, so there always is one)
+
   CommandPacket cmd;
   cmd.packetId = 0xB2;
   cmd.remoteId = REMOTE_ID;
@@ -285,9 +304,15 @@ void sendCommand(int8_t heightIndex, int8_t waterCommand, int8_t bypassCommand, 
   cmd.bypassCommand = bypassCommand;
   cmd.txCounter = txCounter++;
 
+  // Pack (see the top of this tab), encrypt and send
+  uint8_t plain[RS_COMMAND_LEN] = { cmd.seq, (uint8_t)cmd.targetHeightIndex, (uint8_t)cmd.waterCommand,
+                                    cmd.remoteControlMode, (uint8_t)cmd.bypassCommand };
+  uint8_t air[RS_HEADER_LEN + RS_COMMAND_LEN + RS_TAG_LEN];
+  uint8_t len = rsSeal((uint8_t)(RS_SENDER_REMOTE + REMOTE_ID), rsNextFcnt(), true, lastRampFcnt, plain, RS_COMMAND_LEN, air);
+
   loraStats.cmdTx++;
   lastSendTime = millis();
-  Radio.Send((uint8_t *)&cmd, sizeof(cmd));
+  Radio.Send(air, len);
 }
 
 // Is a manual-drive (or "I let go") packet due?
@@ -413,6 +438,7 @@ void handleLoraLink()
   if (state.Remote_Connected && (now - lastHeardTime) > LINK_TIMEOUT_MS)
   {
     state.Remote_Connected = false;
+    haveRampFcnt = false;   // The ramp may have been reflashed (its counter starts again): take its next packet
   }
 
   // 5. Fire the scheduled transmission
@@ -490,31 +516,70 @@ void OnRxError(void)
 
 void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr)
 {
-  if (size == sizeof(TelemetryPacket) && payload[0] == 0xA1)
+  if (size == RS_HEADER_LEN + RS_TELEMETRY_LEN + RS_TAG_LEN && payload[0] == RS_SENDER_RAMP)
   {
-    memcpy(&lastTelemetry, payload, sizeof(lastTelemetry));
-    lastRssi = rssi;
-    telemetryReceived = true;   // Processed in handleLoraLink()
+    uint8_t p[RS_TELEMETRY_LEN];
+    uint32_t fcnt = rsPacketFcnt(payload);
 
-    // Link statistics
-    loraStats.rxTelemetry++;
-    loraStats.rssi = rssi;
-    loraStats.snr = snr;
-    if (loraStats.haveCounter)
+    if (!rsOpen(payload, size, false, 0, p))
     {
-      uint8_t gap = (uint8_t)(lastTelemetry.txCounter - loraStats.lastCounter - 1);   // Ramp packets we never heard
-      if (gap < 20)   // Anything bigger is a reboot or a long outage, not packet loss
-      {
-        loraStats.lost += gap;
-      }
+      loraStats.rxBadKey++;   // Not signed with our key: a ramp with a different bind phrase
     }
-    loraStats.lastCounter = lastTelemetry.txCounter;
-    loraStats.haveCounter = true;
+    else if (haveRampFcnt && (int32_t)(fcnt - lastRampFcnt) <= 0)
+    {
+      loraStats.rxReplay++;   // Older than one we already have: played back
+    }
+    else
+    {
+      // Unpack (see the top of this tab)
+      lastTelemetry.packetId           = 0xA1;
+      lastTelemetry.rampHeightIndex    = p[0] & 0x03;
+      lastTelemetry.desiredHeightIndex = (p[0] >> 2) & 0x03;
+      lastTelemetry.limitMask          = (p[0] >> 4) & 0x0F;
+      lastTelemetry.waterRelay         = (p[1] & 0x01) ? 1 : 0;
+      lastTelemetry.motorRunning       = (p[1] & 0x02) ? 1 : 0;
+      lastTelemetry.motorDirectionUp   = (p[1] & 0x04) ? 1 : 0;
+      lastTelemetry.powerLoss          = (p[1] & 0x08) ? 1 : 0;
+      lastTelemetry.heightSensorFault  = (p[1] & 0x10) ? 1 : 0;
+      lastTelemetry.motorTimeoutFault  = (p[1] & 0x20) ? 1 : 0;
+      lastTelemetry.faultCount         = p[2];
+      lastTelemetry.heightFaultMask    = p[3] & 0x0F;
+      lastTelemetry.ackResult          = (p[3] >> 4) & 0x0F;
+      lastTelemetry.ackRemoteId        = p[4];
+      lastTelemetry.ackSeq             = p[5];
+      lastTelemetry.flags              = p[6];
+      lastTelemetry.waterRemainMin     = (uint16_t)(p[7] | (p[8] << 8));
+      lastTelemetry.txCounter          = (uint8_t)fcnt;
+      lastRampFcnt = fcnt;
+      haveRampFcnt = true;
+      lastRssi = rssi;
+      telemetryReceived = true;   // Processed in handleLoraLink()
+
+      // Link statistics
+      loraStats.rxTelemetry++;
+      loraStats.rssi = rssi;
+      loraStats.snr = snr;
+      if (loraStats.haveCounter)
+      {
+        uint32_t gap = fcnt - loraStats.lastCounter - 1;   // Ramp packets we never heard
+        if (gap < 20)   // Anything bigger is a reboot or a long outage, not packet loss
+        {
+          loraStats.lost += gap;
+        }
+      }
+      loraStats.lastCounter = fcnt;
+      loraStats.haveCounter = true;
+    }
   }
-  // Other remotes' commands are also heard here; they're a different size/ID and get ignored.
-  else if (size == sizeof(CommandPacket) && payload[0] == 0xB2)
+  // Other remotes' commands are also heard here; they're a different size/sender and get ignored.
+  else if (size == RS_HEADER_LEN + RS_COMMAND_LEN + RS_TAG_LEN &&
+           payload[0] > RS_SENDER_REMOTE && payload[0] <= RS_SENDER_REMOTE + REMOTE_ID_MAX)
   {
     loraStats.rxOther++;
+  }
+  else if ((size == 19 && payload[0] == 0xA1) || (size == 8 && payload[0] == 0xB2))
+  {
+    loraStats.rxOldFw++;   // Unencrypted packet from older firmware: reflash that unit
   }
   else
   {

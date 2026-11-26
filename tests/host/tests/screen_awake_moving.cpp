@@ -13,6 +13,7 @@ int digitalRead(uint8_t p){
   return pinv[p]; }
 int analogRead(uint8_t){return adc;}
 #include SRC
+#include "radio_test.h"
 static int fails=0;
 #define CHECK(c,msg) do{ if(!(c)){printf("FAIL: %s\n",msg);fails++;} else printf("ok:   %s\n",msg);}while(0)
 
@@ -21,7 +22,7 @@ static bool rampOn=true; static uint8_t moving=0, ctr=0;
 #endif
 void run(long ms){ for(long i=0;i<ms;i++){ g_millis++;
 #ifdef REMOTE
-    if(rampOn && g_millis%250==0){ TelemetryPacket t; memset(&t,0,sizeof t); ((uint8_t*)&t)[0]=0xA1; t.motorRunning=moving; t.motorDirectionUp=1; t.desiredHeightIndex=2; t.txCounter=ctr++; OnRxDone((uint8_t*)&t,sizeof t,-60,7); }
+    if(rampOn && g_millis%250==0){ TelemetryPacket t; memset(&t,0,sizeof t); ((uint8_t*)&t)[0]=0xA1; t.motorRunning=moving; t.motorDirectionUp=1; t.desiredHeightIndex=2; t.txCounter=ctr++; rxTelemetry(t,-60,7); }
 #endif
     loop(); } }
 

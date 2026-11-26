@@ -9,7 +9,9 @@ Read `docs/DEVELOPMENT.md` first: hardware facts, safety rules and the reasons b
   only, no build-system-only features, no extra libraries beyond the Heltec board package + "Heltec ESP32
   Dev-Boards" library. Follow the "Editing the sketches safely" rules in DEVELOPMENT.md (forward declarations for
   custom-type parameters, shared constants in the main tab).
-- `Games.ino` is an identical copy in both sketch folders. Edit one, copy to the other.
+- `Games.ino` and `Radio_Security.ino` are identical copies in both sketch folders. Edit one, copy to the other.
+- Radio packets are encrypted with a key from the bind phrase (`Radio_Security.ino`, DEVELOPMENT.md "Radio protocol").
+  Never put a real bind phrase in the repo (`bind_phrase.h` is gitignored): the repo is public.
 - Radio packet layouts are shared: change `TelemetryPacket` / `CommandPacket` in both sketches together.
 - Safety behaviour is deliberate (see DEVELOPMENT.md "Behaviour and safety rules"). In particular: the direction
   relay must never switch while motor power is on; no sensor at power-up = CAL REQUIRED; heights only settable on

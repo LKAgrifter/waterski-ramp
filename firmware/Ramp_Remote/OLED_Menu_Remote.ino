@@ -454,6 +454,7 @@ void buildNetworkLines()
 
     unsigned long age = millis() - lastHeardTime;
     addLine("Link: %s", state.Remote_Connected ? "ONLINE" : "OFFLINE");
+    addLine("%s", bindText());
     addLine("RSSI %d  SNR %d", loraStats.rssi, loraStats.snr);
     addLine("Heard: %lu.%lus ago", age / 1000UL, (age % 1000UL) / 100UL);
     addLine("RTT: %u ms", loraStats.rttMs);
@@ -463,6 +464,10 @@ void buildNetworkLines()
     addLine("RX ok: %lu", (unsigned long)loraStats.rxTelemetry);
     addLine("Lost: %lu (%.1f%%)", (unsigned long)loraStats.lost, lossPct);
     addLine("CRC %lu  Oth %lu", (unsigned long)loraStats.rxCrcErr, (unsigned long)(loraStats.rxOther + loraStats.rxUnknown));
+    addLine("Bad key %lu", (unsigned long)loraStats.rxBadKey);
+    addLine("Replayed: %lu", (unsigned long)loraStats.rxReplay);
+    if (loraStats.rxOldFw)
+        addLine("Old firmware heard: %lu", (unsigned long)loraStats.rxOldFw);
     addLine("Cmd TX: %lu", (unsigned long)loraStats.cmdTx);
     addLine("Retry:%lu Fail:%lu", (unsigned long)loraStats.cmdRetries, (unsigned long)loraStats.cmdFails);
 

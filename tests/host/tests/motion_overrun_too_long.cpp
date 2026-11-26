@@ -14,6 +14,7 @@ int digitalRead(uint8_t p){ for(int i=0;i<4;i++) if(p==LP[i]){ if(i==2&&dead5) r
 void physics(){ int dir=0; if(outv[2]==1){ dir = outv[3]==1 ? 1 : -1; coastMs=60; lastDir=dir; } else if(coastMs>0){ coastMs--; dir=lastDir; }
   pos += dir*0.5/STEP_MS; if(pos<3.9) pos=3.9; if(pos>5.6) pos=5.6; }
 #include SRC
+#include "radio_test.h"
 bool onSw(double h){ return fabs(pos-h)<=ZONE; }
 static int fails=0;
 #define CHECK(c,msg) do{ if(!(c)){printf("FAIL: %s\n",msg);fails++;} else printf("ok:   %s\n",msg);}while(0)
@@ -25,7 +26,7 @@ void goPage(ScreenState s){ if(state.oledSleeping) holdMenu(); for(int i=0;i<8 &
 void pressH(int v){ goPage(SCREEN_SET_HEIGHT); adc=v; run(120); adc=3200; run(120); }
 const int L4=2980,L45=2610,L5=1960,L55=0;
 bool runUntilStopped(int maxMs){ int quiet=0; for(int i=0;i<maxMs;i++){ run(1); if(!state.Motor_Running && !state.DirectionChangePending && !state.MotorPowerPending) quiet++; else quiet=0; if(quiet>3000) return true; } return false; }
-void sendHeight(int8_t idx){ static uint8_t seq=10, ctr=0; CommandPacket c; c.remoteId=1; c.seq=seq++; c.targetHeightIndex=idx; c.waterCommand=-1; c.remoteControlMode=0; c.bypassCommand=-1; c.txCounter=ctr++; OnRxDone((uint8_t*)&c,sizeof(c),-60,7); }
+void sendHeight(int8_t idx){ static uint8_t seq=10, ctr=0; CommandPacket c; c.remoteId=1; c.seq=seq++; c.targetHeightIndex=idx; c.waterCommand=-1; c.remoteControlMode=0; c.bypassCommand=-1; c.txCounter=ctr++; rxCommand(c,-60,7); }
 // Stop overrun set LONGER than the sensor range (build with -DZONE_MM=1): the stop lands past the sensor.
 // Expect: Diagnostics "Last stop: OFF sw!" and no hunting back and forth.
 int main(){

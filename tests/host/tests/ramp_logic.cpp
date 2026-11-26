@@ -5,6 +5,7 @@ RadioT Radio;
 void pinMode(uint8_t,uint8_t){} static int bootRelayOnWrites=0; static bool inSetup=true;
 void digitalWrite(uint8_t p,uint8_t v){ if(p>=1&&p<=3){ outv[p]=v; if(inSetup && v==1) bootRelayOnWrites++; } else outv[p]=v; } int digitalRead(uint8_t p){ if(p==34||p==33||p==47||p==48) return !pinv[p]; return pinv[p]; } int analogRead(uint8_t){return adc;}
 #include SRC
+#include "radio_test.h"
 static int fails=0;
 #define CHECK(c,msg) do{ if(!(c)){printf("FAIL: %s\n",msg);fails++;} else printf("ok:   %s\n",msg);}while(0)
 void run(int ms){ for(int i=0;i<ms;i++){ g_millis++; loop(); } }
@@ -12,7 +13,7 @@ void hold(int pin,int ms){ pinv[pin]=0; run(ms); }
 void release(int pin,int ms=60){ pinv[pin]=1; run(ms); }
 void sendCmd(uint8_t mode,int8_t h=-1,int8_t water=-1,int8_t byp=-1,uint8_t seq=0){
   static uint8_t ctr=0; CommandPacket c; c.remoteId=1; c.seq=seq; c.targetHeightIndex=h; c.waterCommand=water; c.remoteControlMode=mode; c.bypassCommand=byp; c.txCounter=ctr++;
-  OnRxDone((uint8_t*)&c,sizeof(c),-60,7); }
+  rxCommand(c,-60,7); }
 int main(){
   for(int i=0;i<64;i++){pinv[i]=1;}
   pinv[34]=0;                       // parked on the 4ft switch (active LOW)

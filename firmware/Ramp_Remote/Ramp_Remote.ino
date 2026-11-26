@@ -24,6 +24,12 @@ static SSD1306Wire  display(0x3c, 500000, SDA_OLED, SCL_OLED, GEOMETRY_128_64, R
 #define LORA_FIX_LENGTH_PAYLOAD_ON false
 #define LORA_IQ_INVERSION_ON    false
 
+// Encrypted packet layout (Radio_Security.ino has the details). Same values in both sketches.
+constexpr uint8_t RS_HEADER_LEN    = 5;      // Sender byte + 4-byte frame counter
+constexpr uint8_t RS_TAG_LEN       = 4;      // Signature (Poly1305 tag) bytes at the end
+constexpr uint8_t RS_SENDER_RAMP   = 0xA1;   // Sender byte of the ramp's packets
+constexpr uint8_t RS_SENDER_REMOTE = 0xB0;   // Sender byte of a remote's packets = this + its ID (0xB1..0xB4)
+
 // Radio Events Callbacks
 static RadioEvents_t RadioEvents;
 
@@ -243,7 +249,7 @@ Button &MenuButton  = EnterButton;   // HOLD = next page
 Button &WaterButton = BackButton;    // Water page: tap = toggle
 
 //Menu list pages (Network / Diagnostics) share these
-constexpr uint8_t LIST_MAX_LINES = 16;   // lines a list page can hold
+constexpr uint8_t LIST_MAX_LINES = 20;   // lines a list page can hold
 constexpr uint8_t LIST_LINE_LEN  = 26;   // chars per line incl. NUL (the OLED fits ~24 at 10 pt)
 constexpr uint8_t LIST_VISIBLE   = 4;    // lines visible at once
 char    listLines[LIST_MAX_LINES][LIST_LINE_LEN];
@@ -266,6 +272,7 @@ void setup() {
 
   //Define Preferences
   prefs.begin("settings", false);
+  radioSecurityBegin();   // Radio key from the bind phrase (Radio_Security.ino)
 
   // This remote's ID (set on the NETWORK page)
   REMOTE_ID = prefs.getUChar("RemoteId", DEFAULT_REMOTE_ID);
