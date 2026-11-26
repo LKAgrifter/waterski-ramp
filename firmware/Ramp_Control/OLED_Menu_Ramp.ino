@@ -210,6 +210,21 @@ void drawListPage(const char *title)
 // Pages
 // ---------------------------------------------------------------------------
 
+// Shown just before the radio starts (setup). If a board stays on this screen, Heltec's library is stuck asking for
+// the board's radio license (the USB serial output says "Please provide a correct license!"): see the user guide.
+void drawRadioStartScreen()
+{
+    display.clear();
+    display.setFont(ArialMT_Plain_10);
+    display.setTextAlignment(TEXT_ALIGN_LEFT);
+    display.drawString(0, 0, "Starting radio...");
+    display.drawString(0, 13, "Stuck on this screen?");
+    display.drawString(0, 26, "The board's Heltec radio");
+    display.drawString(0, 39, "license may be missing:");
+    display.drawString(0, 51, "see the user guide.");
+    display.display();
+}
+
 void drawBootScreen()
 {
     if(millis() < 5000)

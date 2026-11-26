@@ -31,7 +31,8 @@ class Serial_t{public: void begin(int){}
 #define RST_OLED 21
 #define HELTEC_BOARD 0
 #define SLOW_CLK_TPYE 0
-struct McuT{void begin(int,int){}}; extern McuT Mcu;
+extern void (*g_onMcuBegin)();   // tests: called when the sketch calls Mcu.begin() (Heltec's license check)
+struct McuT{void begin(int,int){ if(g_onMcuBegin) g_onMcuBegin(); }}; extern McuT Mcu;
 
 #define FALLING 2
 #define IRAM_ATTR

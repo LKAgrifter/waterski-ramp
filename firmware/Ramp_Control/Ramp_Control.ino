@@ -441,7 +441,17 @@ void setup() {
   digitalWrite(WATER_LED, LOW);
   
 
-  // 2. Initialize Heltec V3 MCU and Power on Vext (powers OLED and sensor rails)
+  // 2. Show "Starting radio..." BEFORE Mcu.begin(). Heltec's Mcu.begin() checks the board's Heltec radio license and,
+  //    if it has been erased (a full flash erase deletes it), loops forever printing "Please provide a correct
+  //    license!" over USB. The screen then says what's wrong instead of staying blank. (Everything after Mcu.begin()
+  //    below is unchanged: Vext and the display are set up again there, in case Mcu.begin() touches them.)
+  pinMode(Vext, OUTPUT);
+  digitalWrite(Vext, LOW); // LOW powers on the Vext rail (OLED) for Heltec V3
+  delay(100);
+  display.init();
+  drawRadioStartScreen();
+
+  // 3. Initialize Heltec V3 MCU and Power on Vext (powers OLED and sensor rails)
   Mcu.begin(HELTEC_BOARD, SLOW_CLK_TPYE);
   pinMode(Vext, OUTPUT);
   digitalWrite(Vext, LOW); // LOW powers on the Vext rail for Heltec V3
@@ -449,7 +459,7 @@ void setup() {
   simWaitForSensors();   // Simulation mode only: wait (max 1 s) for the PC's first sensor reading
   initHeight();
 
-  // 3. Initialize OLED Display
+  // 4. Initialize OLED Display
   display.init();
   //display.flipScreenVertically();
   drawScreen(); //Draw the default boot screen

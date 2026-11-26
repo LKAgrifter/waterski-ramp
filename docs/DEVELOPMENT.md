@@ -202,7 +202,9 @@ range or library-version problems. See `tests/host/README.md`.
   to open the installer if a different version lacks it), and the manifests set `new_install_prompt_erase: false`.
 - **Heltec radio license:** Heltec's library checks a per-chip license in `Mcu.begin()`. It keeps it in flash, in the
   `app1` partition (the second OTA slot; a `key_data` partition is the fallback). A full flash erase deletes it, and
-  the firmware then loops in `Mcu.begin()` printing "Please provide a correct license!" with the chip ID, screen off.
+  the firmware then loops in `Mcu.begin()` printing "Please provide a correct license!" with the chip ID. Both sketches
+  power the OLED and draw `drawRadioStartScreen()` ("Starting radio... Stuck on this screen? ...license may be
+  missing") just before `Mcu.begin()`, so a stuck board says so (test: `radio_start_screen.cpp`).
   Fix: get the license for that chip ID from resource.heltec.cn/search and send `AT+CDKEY=<the 4 numbers as 32 hex
   digits, no 0x / commas>` over serial; Heltec's library saves it. So: never full-erase these boards, and don't use
   `app1` for anything (OTA updates would write it) without saving the license elsewhere first.
