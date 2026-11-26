@@ -229,18 +229,22 @@ void drawBootScreen()
 {
     if(millis() < 5000)
     {
+        static unsigned long animStart = millis();   // The jump animation starts with the boot screen
+
+        // The second line is the warning when there is one (both in turn if the sensor bypass is on in SIM_MODE)
+        const char *subtitle = "Ramp Side Controller";
+        bool bypass = heightSafetyBypassActive();
+        if (bypass && (!SIM_MODE || (millis() / 1250) % 2 == 0))
+            subtitle = "!! SENSOR BYPASS ON !!";
+        else if (SIM_MODE)
+            subtitle = "** SIMULATION MODE **";
+
         display.setFont(ArialMT_Plain_10);
+        display.setTextAlignment(TEXT_ALIGN_LEFT);
         display.clear();
-        display.drawString(0, 0, "Ramp-O-Matic Initiallizing");
-        display.drawString(0, 15, "Ramp Side Controller");
-        if (SIM_MODE)
-        {
-            display.drawString(0, 45, "** SIMULATION MODE **");
-        }
-        if (heightSafetyBypassActive())
-        {
-            display.drawString(0, 30, "!! SENSOR BYPASS ON !!");
-        }
+        display.drawString(0, 0, "Ramp-O-Matic Initializing");
+        display.drawString(0, 12, subtitle);
+        drawBootAnimation(millis() - animStart);   // Boot_Animation.ino
         display.display();
         return;
     }
