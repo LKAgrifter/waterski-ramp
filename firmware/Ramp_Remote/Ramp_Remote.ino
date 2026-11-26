@@ -307,6 +307,31 @@ void updateWaterLed()
   digitalWrite(WATER_LED, on ? HIGH : LOW);
 }
 
+// The four height LEDs show the ramp, as it reports it, the same way as the ramp's own LEDs (LEDs_Ramp.ino):
+//   stopped = the LED for its height (none while the height isn't known, e.g. CAL REQUIRED)
+//   moving  = a strobe through the heights in the direction it's going (4 -> 5.5 going up, 5.5 -> 4 going down)
+//   no link to the ramp = all off
+constexpr unsigned long HEIGHT_LED_STROBE_MS = 750;    // One strobe sweep through the four LEDs (the original remote LED tab's speed)
+void updateHeightLeds()
+{
+  const uint8_t byHeight[4] = { LED_4, LED_1, LED_2, LED_3 };   // 4.0, 4.5, 5.0, 5.5 ft
+  int lit = -1;                                                 // Index into byHeight, -1 = none
+  if (state.Remote_Connected && state.Motor_Running)
+  {
+    int step = (int)((millis() % HEIGHT_LED_STROBE_MS) * 4 / HEIGHT_LED_STROBE_MS);
+    lit = state.Motor_Direction_Up ? step : 3 - step;
+  }
+  else if (state.Remote_Connected && !diag.powerLoss)   // Height known (no CAL REQUIRED)
+  {
+    if (state.Ramp_Height == 4.0f)      lit = 0;
+    else if (state.Ramp_Height == 4.5f) lit = 1;
+    else if (state.Ramp_Height == 5.0f) lit = 2;
+    else if (state.Ramp_Height == 5.5f) lit = 3;
+  }
+  for (int i = 0; i < 4; i++)
+    digitalWrite(byHeight[i], i == lit ? HIGH : LOW);
+}
+
 void setup() {
   Serial.begin(115200);
 
@@ -395,5 +420,6 @@ processButtons();      // must come after handleOLEDTimeout
 handleLoraLink();
 drawScreen();
 updateWaterLed();     // the board's white LED shows the ramp's water
+updateHeightLeds();   // the height LEDs show the ramp's height, strobing while it moves
 
 }
