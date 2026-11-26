@@ -63,6 +63,14 @@ constexpr unsigned long REMOTE_MANUAL_TIMEOUT_MS = 1000;
 // Only the ramp needs reflashing to change it.
 constexpr bool ALLOW_REMOTE_MANUAL = true;
 
+// ONE REMOTE AT A TIME. true = when the ramp accepts a remote's height pick or manual drive, that remote "has control"
+// until the ramp has stopped moving and REMOTE_CONTROL_HOLD_MS more has passed. Until then height picks and manual drive
+// from every OTHER remote are refused, and their screens say which remote has control (so the boat and the shore remote
+// can't fight over the ramp). Water isn't affected. The ramp's own buttons always win: using them takes control away
+// from the remote. false = every remote can send heights at any time (the last one wins).
+constexpr bool ONE_REMOTE_AT_A_TIME = true;
+constexpr unsigned long REMOTE_CONTROL_HOLD_MS = 5000;
+
 // ---------------------------------------------------------------------------
 // *** TESTING ONLY: HEIGHT SENSOR SAFETY BYPASS ***
 // While the bypass is ON the ramp ignores: the height-sensor fault and the top/bottom soft limits. AUTO mode is

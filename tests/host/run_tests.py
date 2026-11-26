@@ -32,6 +32,7 @@ VARIANTS = [
     ('ramp_cal',   'Ramp_Control', 'Ramp_Control', {'LADDER_CALIBRATION_MODE = false;': 'LADDER_CALIBRATION_MODE = true;'}),
     ('remote_cal', 'Ramp_Remote',  'Ramp_Remote',  {'LADDER_CALIBRATION_MODE = false;': 'LADDER_CALIBRATION_MODE = true;'}),
     ('ramp_long',  'Ramp_Control', 'Ramp_Control', {'MOTOR_STEP_TIMEOUT_MS = 100000;': 'MOTOR_STEP_TIMEOUT_MS = 200000;'}),
+    ('ramp_multi_remote', 'Ramp_Control', 'Ramp_Control', {'constexpr bool ONE_REMOTE_AT_A_TIME = true;': 'constexpr bool ONE_REMOTE_AT_A_TIME = false;'}),
     ('ramp_sim',   'Ramp_Control', 'Ramp_Control', {'SIM_MODE = false;': 'SIM_MODE = true;'}),
     ('ramp_no_remote_manual', 'Ramp_Control', 'Ramp_Control', {'ALLOW_REMOTE_MANUAL = true;': 'ALLOW_REMOTE_MANUAL = false;'}),
 ]
@@ -63,6 +64,9 @@ TESTCASES = [
     ('screen_awake_moving_ramp', 'screen_awake_moving.cpp',     'ramp',       [], False),
     ('screen_awake_moving_remote','screen_awake_moving.cpp',    'remote',     ['REMOTE'], False),
     ('motor_usage',              'motor_usage.cpp',             'ramp',       ['ZONE_MM=8'], False),
+    ('one_remote_ramp',          'one_remote.cpp',              'ramp',       [], False),
+    ('one_remote_multi',         'one_remote.cpp',              'ramp_multi_remote', ['MULTI'], False),
+    ('one_remote_remote',        'one_remote.cpp',              'remote',     ['REMOTE'], False),
     ('sim_mode',                 'sim_mode.cpp',                'ramp_sim',   ['SIM'], False),
     ('sim_mode_boot_no_sensor',  'sim_mode.cpp',                'ramp_sim',   ['SIM', 'NOSENSOR'], False),
     ('sim_mode_off',             'sim_mode.cpp',                'ramp',       [], False),

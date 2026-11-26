@@ -134,6 +134,8 @@ void setManualDrive(uint8_t dir, ControlSource source, uint8_t remoteId)
     state.Control_Source = source;
     state.ManualRemoteId = remoteId;
     state.LastManualPacket = millis();   // Feeds the 1 s remote dead-man
+    if (source == SOURCE_LOCAL)
+        releaseRemoteControl();          // Driving at the ramp takes control away from a remote
 }
 
 // TESTING ONLY. True when the height sensor safeties are bypassed.

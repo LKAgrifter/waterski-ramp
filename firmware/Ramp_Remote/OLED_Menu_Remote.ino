@@ -259,6 +259,8 @@ void drawSetHeightScreen()
         s = "Sending...";
     else if (heightRequestLocked())
         s = "Ramp buttons in use";
+    else if (heightRequestBusy())
+        s = controlOwnerText(false);   // Another remote has control
     else if (heightRequestFailed())
         s = "No response, retry";
     else if (state.Height_Safety_Bypass)
@@ -267,6 +269,8 @@ void drawSetHeightScreen()
         s = "Ramp CAL REQUIRED";
     else if (state.Motor_Running)
         s = state.Motor_Direction_Up ? "Moving UP..." : "Moving DOWN...";
+    else if (otherRemoteInControl())
+        s = controlOwnerText(false);   // Its move just finished: picks are refused for a few seconds more
     else if (nowHeightKnown() && abs(state.Ramp_Height - state.Desired_Height) < 0.1)
         s = "At height";
     drawRow(3, s);
@@ -329,6 +333,8 @@ void drawHomeScreen() //Draw the home screen. Status only: no buttons do anythin
         status = "NO RAMP LINK";
     else if (heightRequestLocked())
         status = "RAMP IN USE";        // Someone is using the buttons on the ramp
+    else if (heightRequestBusy())
+        status = controlOwnerText(true);   // Another remote has control
     else if (heightRequestFailed())
         status = "NO RESPONSE";
     else if (diag.heightSensorFault && !state.Height_Safety_Bypass)
@@ -383,6 +389,8 @@ void drawHeightScreen() //Manual adjust page: hold UP / DOWN to drive the ramp's
         drawRow(1, "BYPASS: ramp btns only");   // ...and while its sensor bypass is on
     else if (manualBlocked())
         drawRow(1, "Ramp buttons in use!");
+    else if (manualBusy() || otherRemoteInControl())
+        drawRow(1, controlOwnerText(false));    // Another remote has control
     else
         drawRow(1, "Hold UP / DOWN to drive");
 

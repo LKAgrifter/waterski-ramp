@@ -30,6 +30,13 @@ Read this before changing behaviour. Settings are named constants near the top o
   ramp refuses every remote manual request and sets `FLAG_REMOTE_MANUAL_OFF` (0x10) in the telemetry `flags`; the
   remotes' MANUAL page then says "Manual: at the ramp only". Only the ramp needs reflashing. Remote manual is
   also refused while CAL REQUIRED and while the sensor bypass is on.
+- **One remote at a time** (`ONE_REMOTE_AT_A_TIME`, ramp main tab, default true): the remote whose height pick or
+  manual drive the ramp accepts becomes `controlOwner` until the ramp is idle (motor stopped, no direction change
+  pending, not in manual) plus `REMOTE_CONTROL_HOLD_MS` (5 s). Other remotes' height / manual commands get
+  `ACK_BUSY` (3); water and bypass commands are unaffected. The owner goes out in telemetry `flags` bits 5-7
+  (`FLAG_OWNER_SHIFT`), so remotes can say "Remote N has control". A height pick or manual drive at the ramp's own
+  buttons clears the owner (`releaseRemoteControl`). `Control_Source` can't be used for this: auto moves call
+  `requestMotorUp/Down()` with the default `SOURCE_LOCAL`. Test: `tests/host/tests/one_remote.cpp`.
 - **Manual drive from a remote is level-triggered:** `remoteControlMode` (1 = up, 2 = down) must be repeated in
   every packet. If the ramp hears nothing for `REMOTE_MANUAL_TIMEOUT_MS` (1 s) it stops (dead-man). Releasing the
   button sends `MANUAL_STOP_REPEATS` "stop" packets so it normally stops within one packet.

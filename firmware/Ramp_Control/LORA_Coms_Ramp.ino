@@ -44,7 +44,8 @@ inline uint8_t floatToHeightIndex(float h) {
 enum AckResult : uint8_t {
   ACK_NONE   = 0,   // Periodic broadcast, not an answer to anyone
   ACK_OK     = 1,   // Command accepted
-  ACK_LOCKED = 2    // Height / manual command refused (local override, local manual in progress, or bypass active)
+  ACK_LOCKED = 2,   // Height / manual command refused (local override, local manual in progress, or bypass active)
+  ACK_BUSY   = 3    // Height / manual command refused: another remote has control (ONE_REMOTE_AT_A_TIME)
 };
 
 // Bits in TelemetryPacket.flags. Must match the remote side exactly.
@@ -53,6 +54,7 @@ constexpr uint8_t FLAG_MANUAL         = 0x02;   // Ramp is in manual drive
 constexpr uint8_t FLAG_OVERCURRENT    = 0x04;   // diag.overCurrentFault
 constexpr uint8_t FLAG_LOCAL_OVERRIDE = 0x08;   // Local height override is locking remotes out
 constexpr uint8_t FLAG_REMOTE_MANUAL_OFF = 0x10; // ALLOW_REMOTE_MANUAL is false: remotes can't drive by hand
+constexpr uint8_t FLAG_OWNER_SHIFT    = 5;      // Bits 5-7: the remote that has control (1..4, 0 = none)
 
 // waterCommand values in CommandPacket
 //   -1 = ignore, 0 = off, 1 = on (1 h timer), 2 = keep-alive (refresh a remote-started timer, never starts water),
@@ -113,6 +115,10 @@ uint8_t remoteLastSeq[MAX_REMOTES] = {0};
 uint8_t remoteLastResult[MAX_REMOTES] = {ACK_OK, ACK_OK, ACK_OK, ACK_OK};
 uint8_t remotesConnected = 0;
 
+// ONE REMOTE AT A TIME (see ONE_REMOTE_AT_A_TIME in the main tab)
+uint8_t controlOwner = 0;              // Remote that has control, 1..MAX_REMOTES (0 = none)
+unsigned long controlOwnerUntil = 0;   // Control is released at this time once the ramp is idle
+
 // Link statistics (shown on the NETWORK page)
 struct LoraStats {
   uint32_t rxOk = 0;          // Valid command packets received
@@ -167,7 +173,8 @@ void handleLoraBroadcast()
                  (state.Control_Mode == MODE_MANUAL ? FLAG_MANUAL : 0) |
                  (diag.overCurrentFault ? FLAG_OVERCURRENT : 0) |
                  (state.localOverrideActive ? FLAG_LOCAL_OVERRIDE : 0) |
-                 (ALLOW_REMOTE_MANUAL ? 0 : FLAG_REMOTE_MANUAL_OFF);
+                 (ALLOW_REMOTE_MANUAL ? 0 : FLAG_REMOTE_MANUAL_OFF) |
+                 (uint8_t)((ONE_REMOTE_AT_A_TIME ? (controlOwner & 0x07) : 0) << FLAG_OWNER_SHIFT);
   packet.waterRemainMin = waterRemainingMinutes();
   packet.txCounter = telemetryCounter++;
 
@@ -190,8 +197,43 @@ void handleLoraBroadcast()
   Radio.Send((uint8_t *)&packet, sizeof(packet));
 }
 
+// Does a remote OTHER than this one have control right now?
+bool otherRemoteHasControl(uint8_t remoteId)
+{
+  return ONE_REMOTE_AT_A_TIME && controlOwner != 0 && controlOwner != remoteId;
+}
+
+// The ramp accepted this remote's height pick or manual drive
+void takeRemoteControl(uint8_t remoteId)
+{
+  controlOwner = remoteId;
+  controlOwnerUntil = millis() + REMOTE_CONTROL_HOLD_MS;
+}
+
+// Someone used the ramp's own buttons: no remote has control any more
+void releaseRemoteControl()
+{
+  controlOwner = 0;
+}
+
+// Keep control with its remote while the ramp is busy, then for REMOTE_CONTROL_HOLD_MS after it goes idle
+void updateControlOwner()
+{
+  if (controlOwner == 0)
+    return;
+
+  bool busy = state.Motor_Running || state.DirectionChangePending || state.MotorPowerPending ||
+              state.Control_Mode == MODE_MANUAL;
+  if (busy)
+    controlOwnerUntil = millis() + REMOTE_CONTROL_HOLD_MS;
+  else if ((long)(millis() - controlOwnerUntil) >= 0)
+    controlOwner = 0;
+}
+
 void updateRemoteWatchdog()
 {
+  updateControlOwner();
+
   uint8_t count = 0;
 
   for (uint8_t i = 0; i < MAX_REMOTES; i++)
@@ -273,6 +315,7 @@ void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr)
 
       uint8_t result = ACK_OK;
       bool manualLocked = false;
+      bool manualBusy = false;
 
       // ---- MANUAL DRIVE ----
       // Level-triggered, so it is handled for EVERY packet - even a retry of a command we already ACKed -
@@ -289,10 +332,15 @@ void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr)
         {
           manualLocked = true;   // Remote manual switched off, CAL REQUIRED or sensor bypass on: the ramp is only moved
         }                        // from its own buttons. The remote's MANUAL page says why.
+        else if (otherRemoteHasControl(cmd.remoteId))
+        {
+          manualBusy = true;     // Another remote is using the ramp
+        }
         else
         {
           state.localOverrideActive = false;   // Remote explicitly requesting manual control takes priority over local height lock
           setManualDrive(cmd.remoteControlMode, SOURCE_REMOTE, cmd.remoteId);
+          takeRemoteControl(cmd.remoteId);
         }
       }
       else if (state.Control_Mode == MODE_MANUAL && state.Control_Source == SOURCE_REMOTE && state.ManualRemoteId == cmd.remoteId)
@@ -315,8 +363,13 @@ void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr)
           {
             result = ACK_LOCKED;
           }
+          else if (otherRemoteHasControl(cmd.remoteId))
+          {
+            result = ACK_BUSY;     // Another remote is using the ramp
+          }
           else
           {
+            takeRemoteControl(cmd.remoteId);
             float newTarget = heightIndexToFloat(cmd.targetHeightIndex);
             if (state.Desired_Height != newTarget)   // Last command wins if several remotes disagree
             {
@@ -362,7 +415,7 @@ void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr)
 
       pendingAckId = cmd.remoteId;
       pendingAckSeq = cmd.seq;
-      pendingAckResult = manualLocked ? (uint8_t)ACK_LOCKED : result;
+      pendingAckResult = manualLocked ? (uint8_t)ACK_LOCKED : manualBusy ? (uint8_t)ACK_BUSY : result;
       replyPending = true;   // Reply goes out from loop(). OnTxDone re-arms receive afterwards.
       return;
     }

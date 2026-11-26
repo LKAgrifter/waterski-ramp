@@ -358,4 +358,5 @@ void heightSelection()
     state.Control_Source = SOURCE_LOCAL;
     state.Control_Mode = MODE_AUTO;
     state.localOverrideActive = true; // Flag local priority
+    releaseRemoteControl();           // The ramp's own buttons win over a remote that had control
 }
